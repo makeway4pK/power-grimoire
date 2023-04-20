@@ -13,3 +13,10 @@ $stuff2
 foreach ($thing in $arg) {
 	$thing
 }
+
+write-error "sdfsdv
+zsfd
+zsdfzsdsdz
+`t
+`t
+`t	    asfzffff"

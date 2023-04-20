@@ -5,6 +5,14 @@ param (
 ) Set-Location $PSScriptRoot
 $WifiGuy = "..\modules\bin\WlanScan.exe"
 
+if (!(test-path $WifiGuy)) {
+	Write-Error "WlanScan.exe required for rescanning Wifi network list!
+	Run this for more info:
+	`t
+	`t	help modules\WlanScan\WlanScan-decoder.ps1
+	`t"
+	return
+}
 &$WifiGuy
 
 . ./cfgMan.ps1 -get 'wifi_ids'
