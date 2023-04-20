@@ -1,0 +1,26 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "echo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [{ "quoting": "weak", "value": "${file} ${input:ScriptArgs}" }],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "ScriptArgs",
+      "type": "promptString",
+      "default": "",
+      "description": "Extra arguments to be passed to the script as a single string"
+    }
+  ]
+}

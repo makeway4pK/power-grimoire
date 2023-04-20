@@ -1,0 +1,9 @@
+desktop.ini
+logs/**
+caches/**
+cfgbox/**
+cfgRoll.ps1
+tasks
+
+
+*.exe
