@@ -1,0 +1,76 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"pwsh","items":[{"aliases":[],"languageName":"pwsh","name":"pwsh"}]}}
+
+#!markdown
+
+2 types of cells:
+- note Cells
+- code cells
+
+#!markdown
+
+note cells are interpreted as markdown text  
+Code cells hold code and that can be run vell by cell or all cells at once.
+
+#!markdown
+
+Notebook has two states:
+- Editing cell mode
+- Not editing mode (Viewing mode maybe?)
+
+#### **Editing mode**
+  - Focused cell is editable, monospace font
+  - Basically text boxes, editable content
+  - [Syntax highlighting]()
+  
+#### **Not editing mode**
+  - Can't edit content
+  - But keyboard is freed up for managing cells
+  - can navigate among cells with [arrow keys]()
+  - select consecutives holding [Shift]()
+  - delete focused cell by [double tapping D]()
+  - New code cell above with [A]()
+  - New code cell below with [B]()
+  - Change cell type to note with [M]()
+  - Change cell type to code with [Y]()  
+  Custom:
+  - Join selected cells with [Shift+J]()
+  - Code cell below [Ctrl+Enter]()
+  
+
+#!pwsh
+
+echo "This is a code cell"
+echo "Shift+Enter		: Run 						##(usually Run + Focus next)"
+echo "Ctrl+Enter  		: Stop edit, same as Esc 	##(usually Run + Stop edit)"
+echo "Ctrl+Alt+Enter  	: Stop edit, same as Esc 	"
+echo "Ctrl+Shift+Enter	: Run + Focus next, useful for controlled execution from the start"
+
+echo "Alt+Enter   		: Run + new cell below"
+echo "Alt+Shift+Enter	: Run + Stop edit 			##(usually nothing)"
+
+#!markdown
+
+Do I like it?  
+pros:
+- easy debug/testing new code
+- easy to run/rerun parts of code
+- overall an improvement over powershell for code
+- always available variable watch
+- note cells can be moved with [Alt+up/down]()
+
+cons:
+- dunno how to change default kernel for the notebook after creation 😭
+- no folding for notes in markdown view
+- checks inside checkboxes are almost invisible, I doubt settings or color theme tweaks can fix this
+- Markdown uses a big yet crowded font that's not even monospace,  
+  must be fixable in settings.
+- keyboard nav is fiddly when code output is involved
+- not an advantage compared to plain text for note-keeping
+- useful for everything except when actual scripts, in-built  
+  variables and the runtime environment is involved, which is  
+  most of what I'm gonna do next.
+
+gonna try taking notes with this for a while, maybe familiarity will fix it.
+Today's 22Apr, I'll review it after 4 days on yfk's bday
