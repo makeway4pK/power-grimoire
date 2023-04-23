@@ -1,0 +1,77 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"pwsh","items":[{"aliases":[],"languageName":"pwsh","name":"pwsh"}]}}
+
+#!markdown
+
+Q: set-variable scopes options? parent scope possible?
+
+#!pwsh
+
+sv -Visibility Public abc cdf
+$varItem = (gv abc)
+
+#!pwsh
+
+$varItem.Attributes+'ascasc'
+
+#!pwsh
+
+$varItem.Options
+
+#!pwsh
+
+function setv([string] $str){
+	sv -Visibility Public FnVar $str
+}
+
+#!pwsh
+
+setv 'String1'
+gv FnVar
+
+#!markdown
+
+- okay, sv-vis public doesn't let vars out of functions, as expected... but that can be a problem
+
+#!markdown
+
+dot scoping the setter function from another script file seems an easy but clunky solution, last option
+
+#!pwsh
+
+function setv([string] $str){
+	sv -Visibility Script FnVar $str
+}
+
+#!pwsh
+
+setv 'String2'
+
+#!markdown
+
+set-var is limited in its scope options but I see a way by handling vars using the obj returned by get-var
+
+#!pwsh
+
+$gvOut=gv
+$gvOut.GetType()
+$gvOut.Contains('$')
+
+#!markdown
+
+- it's an Array of variable objects
+
+#!pwsh
+
+$gvOut=gv -Scope Script
+$gvOut.count
+$gvOut=gv -Scope Local
+$gvOut.count
+$gvOut=gv -Scope Global
+$gvOut.count
+help gv
+
+#!markdown
+
+I think this notebook isn't useful for code research rn

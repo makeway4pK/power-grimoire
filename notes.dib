@@ -41,6 +41,10 @@
 
 #!markdown
 
+- [ ] vscode terminal auto replies
+
+#!markdown
+
 - [x] extract secrets from scripts
   - [x] adb port num
   - [x] warmup paths x5
