@@ -79,3 +79,46 @@ I think this notebook isn't useful for code research rn
 #!markdown
 
   - PSVariable objs store referenced values, i.e. shallow copies of variables that they represent(or point to)
+
+#!markdown
+
+- `sv -scope Script` allows to set vars from inside a function
+
+#!pwsh
+
+rv Tvar*
+rv `@*
+1..9|foreach{sv "Tvar$_" "TestValue: $_"}
+# gv Tvar*
+$liTvar=(gv Tvar*)|select -Property Name,Value
+# rv $Tvars
+rv Tvar*
+rv `@*
+
+$liTvar|sv
+$Tvar5
+
+#!pwsh
+
+rv Tvar*
+rv `@*
+1..9|foreach{$liTvar=@{}}{
+	$var=(sv "Tvar$_" "TestValue: $_" -PassThru)
+	$liTvar[$var]=$var.Value
+	}
+# gv Tvar*
+rv Tvar*
+rv `@*
+
+$liTvar|sv
+# sv $liTvar
+$Tvar5
+# $Tvar5.GetType()
+
+#!markdown
+
+Current options:
+- Dot scoping
+- pass values to caller
+  - needs loop in caller code (pls no)
+  - because set-variable can't handle collections/pipelined values
