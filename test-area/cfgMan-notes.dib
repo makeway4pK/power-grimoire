@@ -75,3 +75,7 @@ help gv
 #!markdown
 
 I think this notebook isn't useful for code research rn
+
+#!markdown
+
+  - PSVariable objs store referenced values, i.e. shallow copies of variables that they represent(or point to)
