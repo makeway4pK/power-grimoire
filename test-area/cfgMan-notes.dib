@@ -117,8 +117,10 @@ $Tvar5
 
 #!markdown
 
-Current options:
+Current options for varaible setter:
 - Dot scoping
+  - `sv -scope script` allows setting variables from a function to the script scope
+  - which will be the caller script's scope since cfgMan will called by dot-scoping
 - pass values to caller
   - needs loop in caller code (pls no)
   - because set-variable can't handle collections/pipelined values
