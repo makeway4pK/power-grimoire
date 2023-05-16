@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] need a standard for cfgman calls, for the varlist specifically
+
+#!markdown
+
 - [ ] implement cfgManager, test it for:
   - [ ] strings
   - [ ] ints
@@ -99,6 +103,11 @@
 #!markdown
 
 ## **Notes**
+
+#!markdown
+
+- `Select-string` is faster than `Get-content` for bigger files
+[Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-fil)
 
 #!markdown
 
