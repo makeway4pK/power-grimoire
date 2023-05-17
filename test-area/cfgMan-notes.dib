@@ -78,7 +78,7 @@ I think this notebook isn't useful for code research rn
 
 #!markdown
 
-  - PSVariable objs store referenced values, i.e. shallow copies of variables that they represent(or point to)
+- PSVariable objs store referenced values, i.e. shallow copies of variables that they represent(or point to)
 
 #!markdown
 
@@ -118,8 +118,9 @@ $Tvar5
 #!markdown
 
 Current options for varaible setter:
-- Dot scoping               --------------------------------              [<going with this\>]()
-  - `sv -scope script` allows setting variables from a function to the script scope 
+
+- Dot scoping -------------------------------- [<going with this\>]()
+  - `sv -scope script` allows setting variables from a function to the script scope
   - which will be the caller script's scope since cfgMan will called by dot-scoping
 - pass values to caller
   - needs loop in caller code (pls no)
@@ -127,8 +128,23 @@ Current options for varaible setter:
 
 #!markdown
 
-Parsing notes:  
+Parsing notes:
+
 - `Select-string` is faster than `Get-content` for bigger files
-[Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-file)
-- I might be able to parse varlists faster if added to the annotations that show up when using  
-``` help <cmdlet/script>```
+  [Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-file)
+- ~~I might be able to parse varlists faster if added to the annotations that show up when using  
+  ` help <cmdlet/script>`~~
+
+#!markdown
+
+Tested all three on a ~2MB text file out of which ~500KB were notes, fresh terminal (I hope nothing was cached(??))
+![Alt text](Screenshot%202023-05-17%20182833.png)
+
+- [Select-string (sls)]() is fastest among the three, no need for annotations
+
+#!pwsh
+
+"Get-Help      took "+(Measure-command {get-help .\helptest.ps1 -full}).milliseconds+"ms for notes"
+"Get-Content   took "+(measure-command {(gc .\helptest.ps1) -match 'note'}).milliseconds+"ms for notes"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'code'}).milliseconds+"ms  for code"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'note'}).milliseconds+"ms  for notes"
