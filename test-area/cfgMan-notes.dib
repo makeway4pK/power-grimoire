@@ -118,9 +118,17 @@ $Tvar5
 #!markdown
 
 Current options for varaible setter:
-- Dot scoping
-  - `sv -scope script` allows setting variables from a function to the script scope
+- Dot scoping               --------------------------------              [<going with this\>]()
+  - `sv -scope script` allows setting variables from a function to the script scope 
   - which will be the caller script's scope since cfgMan will called by dot-scoping
 - pass values to caller
   - needs loop in caller code (pls no)
   - because set-variable can't handle collections/pipelined values
+
+#!markdown
+
+Parsing notes:  
+- `Select-string` is faster than `Get-content` for bigger files
+[Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-file)
+- I might be able to parse varlists faster if added to the annotations that show up when using  
+``` help <cmdlet/script>```

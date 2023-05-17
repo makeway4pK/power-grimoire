@@ -106,11 +106,6 @@
 
 #!markdown
 
-- `Select-string` is faster than `Get-content` for bigger files
-[Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-fil)
-
-#!markdown
-
 - plan  
   cfg, template, script(collector+middleman/cfgMan)  
   gitignore cfg  
