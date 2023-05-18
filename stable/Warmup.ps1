@@ -13,8 +13,7 @@ param(
 $maxWait = 10
 
 # paths
- 
-. ./cfgMan.ps1 -get @(
+$varList = @(
 	'adbPortNum',
 	'warmup_adbFile',
 	'warmup_dir',
@@ -22,6 +21,7 @@ $maxWait = 10
 	'warmup_pushFile',
 	'warmup_logFile'
 )
+. ./cfgMan.ps1 -get $varList
 
 $moment = Get-Date
 "`n[[[[" + $moment.tostring() + "]]]]">>$warmup_logFile
