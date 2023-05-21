@@ -1,8 +1,5 @@
 
-. ./cfgMan.ps1 -get @(
-	'gccpath32',
-	'gccpath64'
-)
+. ./cfgMan.ps1 -get 'gccpath32', 'gccpath64'
 $newSDKpath = $gccpath64
 $currSDKpath = $gccpath32
 $PathVar = [Environment]::GetEnvironmentVariable( "path", "User")

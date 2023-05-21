@@ -2021,7 +2021,7 @@ note: 4-D 2,4-d 10th a A.F. a 8th 4-D 9-point 48-point A&P 3M 5-point 12-point A
 note: 12-point 18-point 3rd A.D.C. 5-T 9th A.D.C. 2,4,5-t 2,4-d A.B. a A.B.A. 5th 4th A.F.A.M. 4th A&P A.C. 2,4-d 2,4-d 5-T 5-T A.B.A. 8-point a' 48-point A&P a- 4GL 9-point 4th a 2,4-d A.D.C. A.B.
 note: 5-point 5-T 1st 11-point a- 5-point 30-30 5th 30-30
 #>
-
+. ./cfgMan.ps1 -get 'help'
 #code: 7th A&M 8-point 9th 2nd A&P a- 20-point 10th 4-D A.B. A.F. 16-point 6th A.B. 10-point 5th 3M A.C. 4GL A.D.C. A.F.A.M. 3D 7th A. 10-point A.F. A.F. 3-D A.D.C. 4th 5-point 16-point A.D.C. 20-point 7-point 20-point A.A.A. 3D 3rd A. 30-30 8th 30-30 2D A.F. A.A.A. 5-T 7-point a' A.F. 10th 30-30 18-point 10-point a' 3rd
 #code: A&M 30-30 8th 30-30 11-point 16-point 2,4-d 12-point 5-T 1st 6-point 6-point 2,4,5-t A&P 12-point a' a- A. 6-point 3D 5th 10th 30-30 18-point 3D 9th 3M A.F.A.M. 7th 3M A&M 18-point 5-T 5-T 30-30 16-point 4-D 18-point 18-point a 2,4,5-t a- A.B.A. a' 9-point 5th a- 1st 8-point 3rd 1st A.B.A. 2D 16-point a' 4H 12-point 5-point 4-D 2nd A.F. a' 2D 10-point 4th 6-point
 #code: A.F. A&M 6-point A.F.A.M. A.D.C. 10-point 3M A.B. 8th 3rd 5th A.F.A.M. 2D 10-point 20-point 11-point 2,4,5-t 6th A.D. 10-point A.F. 2D 20-point 2D 3rd 2D A.D.C. A.D.C.

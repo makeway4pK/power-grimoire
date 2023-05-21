@@ -128,7 +128,7 @@ Current options for varaible setter:
 
 #!markdown
 
-Parsing notes:
+#### [Parsing]()
 
 - `Select-string` is faster than `Get-content` for bigger files
   [Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-file)
@@ -148,3 +148,100 @@ Tested all three on a ~2MB text file out of which ~500KB were notes, fresh termi
 "Get-Content   took "+(measure-command {(gc .\helptest.ps1) -match 'note'}).milliseconds+"ms for notes"
 "Select-String took "+(measure-command {sls -path .\helptest.ps1 'code'}).milliseconds+"ms  for code"
 "Select-String took "+(measure-command {sls -path .\helptest.ps1 'note'}).milliseconds+"ms  for notes"
+
+#!markdown
+
+Select-string has limitations: - can't retreive multiline pattern matches
+(not without getting content into a string first) - can't get data by line numbers
+
+On the other hand, get-content has a [-Raw]() option that gets content into a single string  
+instead of an array of strings which makes it [FAST](), even faster than sls, have a look:
+
+#!pwsh
+
+"Get-Help      took "+(Measure-command {get-help .\helptest.ps1 -full}).milliseconds+"ms for notes"
+"Get-Content   took "+(measure-command {(gc .\helptest.ps1) -match 'note'}).milliseconds+"ms for notes"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'code'}).milliseconds+"ms  for code"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'note'}).milliseconds+"ms  for notes"
+
+"`nGet-Content-r took "+(measure-command {(gc .\helptest.ps1 -Raw) -match 'code'}).milliseconds+"ms for notes"
+
+#!markdown
+
+parser will capture everything from top of script to the first cfgman call,  
+ replace cfgman with output varname for the var list and use iex to get the list of variable names.
+
+- Thus, cfgman calls will need to:
+  - be placed as close to the top as possible, before any sort of operations  
+    like changing working dirs or running init methods
+  - cfgman call must be contained in a single line, so if the list needs multiple lines, define the list in a var above the call and then use the var in the cfgman call.
+- the captured param block will throw an error so dump the iex's error stream (and output stream as well?)  
+  like so `iex $captured 2>&1>$null`
+
+#!markdown
+
+cfgMan's job is to set variables requested by the script when called with -get option
+
+- -get option objective: set variables in varlist; 2 methods:
+  - get script name and use matching cfgBox without checking varlist
+    - need to confirm cfgBox is updated
+      - if not updated, parse script and update before setting values
+  - parse script to get varlist then set values
+    - gc-raw script data, find cfgman call, iex and get varlist, set vars
+- -collect option objective: get varlists from all scripts and make entries in cfgRoll + inform if any (new/old) vars are undefined.
+
+#!markdown
+
+#### [cfgBox Viability]()
+
+- For cfgBox to be useful, detecting changes in script & var values in cfgRoll must be faster than parsing and setting variables that way
+- detecting changes will be constant time while parsing will partly depend on script length and could be much faster if the script/varlist is small.
+- So, next up is finding the script length at which they perform similarly...
+
+#!markdown
+
+for checking if cfgBox values are updated, I need to:
+
+- check and maintain last modified times of:
+  - cfgRoll
+  - the script
+  - cfgBox
+    - cfgBox's modtime must be greater than cfgRoll's
+- if changes are detected in the script, the new varlist needs to be checked against the old varlist from cfgBox for differences and cfgBox updated if any found.
+- else if changes are detected only in cfgRoll, update cfgBox with varlist from cfgBox
+
+#!markdown
+
+Based on rough comparisons, It's worth using the cfgBox for files that are at least as big as Helptest.ps1(2.12MB):
+
+#!pwsh
+
+pushd ..
+(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1}).TotalMilliseconds
+(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1 -parse}).TotalMilliseconds
+popd
+
+#!markdown
+
+But for small files:
+
+#!pwsh
+
+$path = './stable/wadb.ps1'
+$n=1000
+
+pushd ..
+$boxTime=0
+$parseTime=0
+1..$n|%{
+$boxTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path}).TotalMilliseconds
+$parseTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path -parse}).TotalMilliseconds
+}
+"box check avg: "+$boxTime/$n
+"parser avg:    "+$parseTime/$n
+"file size:     "+[int]((gi $path).Length*100/1KB)/100+" KB"
+popd
+
+#!markdown
+
+Looks like they break even at around [7KB]() on my machine

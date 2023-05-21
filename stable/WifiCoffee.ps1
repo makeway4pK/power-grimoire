@@ -3,8 +3,10 @@ param (
 	[Int] $coffeeTime = 60
 	, $coffeeInterval = 0.5
 ) Set-Location $PSScriptRoot
-$WifiGuy = "..\modules\bin\WlanScan.exe"
 
+. ./cfgMan.ps1 -get 'wifi_ids'
+
+$WifiGuy = "..\modules\bin\WlanScan.exe"
 if (!(test-path $WifiGuy)) {
 	Write-Error "WlanScan.exe required for rescanning Wifi network list!
 	Run this for more info:
@@ -14,8 +16,6 @@ if (!(test-path $WifiGuy)) {
 	return
 }
 &$WifiGuy
-
-. ./cfgMan.ps1 -get 'wifi_ids'
 
 $ok = $false
 $coffeeTime /= $coffeeInterval
