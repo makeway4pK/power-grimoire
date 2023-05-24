@@ -249,3 +249,40 @@ popd
 Looks like they break even at around [7KB]() on my machine  
 Actually no, the parser is [only 3-5%]() better than the box check if not worse, even for a script as small as 0.31KB (setgcc32). On the other hand the parser can be over 8 times slower than the box check for a very big script(70ms to 9ms, both avg times for helptest.ps1)
 So in [Conclusion](), cfgBox is indeed useful and should be implemented to speedup runtime var fetches
+
+#!markdown
+
+#### [Flowchart]()
+
+#!markdown
+
+Overall Flow for cfgMan
+
+#!markdown
+
+```mermaid
+flowchart TD
+
+get[\Script call/]
+collect[\"Direct call to collect"/]
+
+prune>Prune up-to-date scripts]
+parse>Parse]
+update>Sync roll and/or box]
+
+update?{{"Detect updates (cfgBox check)"}}
+undef?{{Find undefined vars}}
+
+set[/Set variables\]
+abort[/Request var definition and abort\]
+
+get --Var list----> update?
+collect --gi *.ps1--> prune --For each--> parse
+parse --Var list--> update?
+
+update? --No updates--> set
+update? --Updates found--> update --> undef?
+
+undef? --None found--> set
+undef? --Undefs found---> abort
+```
