@@ -252,37 +252,92 @@ So in [Conclusion](), cfgBox is indeed useful and should be implemented to speed
 
 #!markdown
 
-#### [Flowchart]()
-
-#!markdown
-
-Overall Flow for cfgMan
+#### Overall Flow for cfgMan
 
 #!markdown
 
 ```mermaid
-flowchart TD
+graph TD
 
 get[\Script call/]
-collect[\"Direct call to collect"/]
+collect[\"Direct call<br/>to collect"/]
 
-prune>Prune up-to-date scripts]
-parse>Parse]
-update>Sync roll and/or box]
+prune>Prune up-to-<br/>date scripts]
+parse([Parse])
+update>Sync roll<br/>and/or box]
 
-update?{{"Detect updates (cfgBox check)"}}
-undef?{{Find undefined vars}}
+update?{{"Detect updates<br/>(cfgBox check)"}}
+undef?{{Find any<br/>undefined vars}}
 
-set[/Set variables\]
-abort[/Request var definition and abort\]
+set[/Set vars or<br/>Return success\]
+abort[/Req var def<br/>and abort\]
 
-get --Var list----> update?
 collect --gi *.ps1--> prune --For each--> parse
-parse --Var list--> update?
+parse --Var list--> update
 
-update? --No updates--> set
-update? --Updates found--> update --> undef?
+update? --Updates found---> update --> undef?
 
 undef? --None found--> set
-undef? --Undefs found---> abort
+undef? --Undefs found--> abort
+
+subgraph Regular invoke
+get --Var list--> update?
+update? --No updates---> set
+end
+```
+
+- 'Detect updates' and 'Prune' will be using mostly the same logic
+- 'Sync' will consist of two steps: List update and Value update
+
+#!markdown
+
+#### Pruning Logic
+
+#!markdown
+
+Basically, filtering out up-to-date scripts.
+returns:
+
+- false for up-to-date scripts  
+  OR a string containing:
+- 'New' for new / untracked scripts
+- 'List' for scripts with pending varList updates
+- 'Value' for scripts with pending Value updates
+
+```mermaid
+graph TD
+in[\Script name/]
+box?{{Find rel cfgbox}}
+new[/return 'New'\]
+getTimes([Get last known<br/> times from cfgBox])
+listChange?{{Last known script write time <br/>is less than<br/> Current Script last write time}}
+addList[/means Script was<br/> changed, might have <br/>new varlist so add<br/> 'List' to outString\]
+valueChange?{{Last known cfgRoll write time <br/>is less than<br/> Current cfgRoll last write time}}
+addValue[/means cfgRoll was <br/>changed, might have <br/>changes in values so add<br/> 'Value' to outString\]
+boxChange?{{Last known cfgBox write time +3seconds <br/>is less than<br/> Current cfgBox last write time}}
+addBox[/means cfgBox was <br/>changed manually, better refresh<br/> values from cfgRoll so add<br/> 'Value' to outString\]
+outString?{{outString is empty?}}
+false[/return $false\]
+outString[/return outString\]
+
+subgraph Regular invocations
+in -->box?
+box? --Box found--> getTimes --> listChange?
+listChange? --NO--> valueChange?
+valueChange? --NO--> boxChange?
+boxChange? --NO--> outString?
+outString? --YES--> false
+end
+
+box? --Not found--> new
+
+listChange? --YES--> addList --> valueChange?
+
+valueChange? --YES--> addValue --> outString?
+
+boxChange? --YES--> addBox --> outString?
+
+outString? --NO--> outString
+
+addValue~~~~addBox
 ```
