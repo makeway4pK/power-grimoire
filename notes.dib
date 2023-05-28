@@ -41,6 +41,22 @@
 
 #!markdown
 
+- [ ] vscode terminal auto replies
+
+#!markdown
+
+- [ ] try wlanscan native call
+
+#!markdown
+
+- [ ] get some mermaid classes for quick styling
+
+#!markdown
+
+## **DONE**
+
+#!markdown
+
 - [x] extract secrets from scripts
   - [x] adb port num
   - [x] warmup paths x5
