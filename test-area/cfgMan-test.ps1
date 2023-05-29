@@ -47,8 +47,34 @@ function Check-NonNull([string[]]$ListtoValidate) {
 }  
 function Filter-Null([string[]]$ListtoFilter) {
 	return [string[]]$nonnull
-}
-function Check-cfgBox([string]$path) {
+}function Check-cfgBox {
+	[cmdletbinding()]
+	param(
+		[Parameter(ValueFromPipeline)]
+		[string]$path
+	)
+	process {
+		$box = cfgBox($path)
+		$box = if (Test-path ($box)) {
+			gi $box
+		}
+		else {	return 'New' }
+	
+		$times = (gc -First 4) -split "`t"
+		$script = gi $path
+		$syncStr = ''
+		if ($times[1] -ne $script.LastWriteTime.toString('MMM-dd-yyyy HH:mm:ss')) {
+			$syncStr += 'List'
+		}
+		$roll = gi ./cfgbox/cfgRoll.ps1
+		$rollTime = $roll.LastWriteTime
+		if ($times[3] -ne $rollTime.ToString('MMM-dd-yyyy HH:mm:ss') -or
+			$times[5] -ne $box.LastWriteTime.ToString('MMM-dd-yyyy HH:mm:ss')) {
+			$syncStr += 'Value'
+		}
+		return $syncStr
+	}
+	<#
 	$script = gi $path
 	$box = gi ./cfgBox/script.cfgBox.ps1
 	$times = (gc $box -First 4) -split "`t"
@@ -59,6 +85,13 @@ function Check-cfgBox([string]$path) {
 	if ($rollTime -gt $box.LastWriteTime.AddSeconds(5)) { return $false }
 	if ($times[5] -ne $box.LastWriteTime.ToString('MMM-dd-yyyy HH:mm:ss')) { return $false }
 	return $true
+	#>
+}
+function cfgBox([string]$path) {
+	$gi = gi $path
+	$rel = $gi.Directory | Resolve-Path -Relative
+	if ($rel -match '\.\.') { return $false }
+	return './cfgBox/' + $rel + '/' + $gi.BaseName + '.cfgBox' + $gi.Extension
 }
 function Update-cfgBox([string]$script) {
 	$script = gi $script
