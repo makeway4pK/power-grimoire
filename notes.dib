@@ -21,6 +21,10 @@
 
 #!markdown
 
+- [ ] just for fun, script a battery percentage logger
+
+#!markdown
+
 - [ ] use get-item
 
 #!markdown
@@ -100,13 +104,13 @@
 #!markdown
 
 - [x] host executable deps?  
-      found sources but, one is in alpha and  
-      the other's binary is base64 encoded on a superuser post  
-      with src in text attached.. that's probably comfortable but  
-      needs a c++ compiler  
-      **decision**: try-catch exe usages, log error msgs pointing to  
-      (1) build instructions AND  
-      (2) prebuilt/encoded (easy access) binaries  
+       found sources but, one is in alpha and  
+       the other's binary is base64 encoded on a superuser post  
+       with src in text attached.. that's probably comfortable but  
+       needs a c++ compiler  
+       **decision**: try-catch exe usages, log error msgs pointing to  
+       (1) build instructions AND  
+       (2) prebuilt/encoded (easy access) binaries
 
 #!markdown
 
@@ -118,36 +122,36 @@
   cfg, template, script(collector+middleman/cfgMan)  
   gitignore cfg  
   template collects descs from?/to? cfg and vars from scripts  
-  need to support lists and namespaces(?)  
+  need to support lists and namespaces(?)
 
 #!markdown
 
-- [x] solidify var fetch mech  
-  - script calls cfgMan with list of vars  
-  - cfgMan in middleman mode checks _cfgBox_ for a file by caller's name(myinvokn.pscommandpath)  
-    - _found_: call it/ init those vars **init vars()**  
-    - _not found_: check cfgRef & cfgRoll for var names  
+- [x] solidify var fetch mech
+  - script calls cfgMan with list of vars
+  - cfgMan in middleman mode checks _cfgBox_ for a file by caller's name(myinvokn.pscommandpath)
+    - _found_: call it/ init those vars **init vars()**
+    - _not found_: check cfgRef & cfgRoll for var names
       - _Not_ found: add var names to cfgRef n cfgRoll and  
-        return fail msg _stating the recent addition_, request _vars be defined_  
-      - _Found_: check for null values  
-        - _any_ are _undef_: return fail msg requesting the _vars be defined_ in cfgRoll  
+        return fail msg _stating the recent addition_, request _vars be defined_
+      - _Found_: check for null values
+        - _any_ are _undef_: return fail msg requesting the _vars be defined_ in cfgRoll
         - _all_ are _Defined_: create cfg file for the script in cfgBox, init vars()
   - cfgMan in collecting mode will have to parse all scripts and identify calls to self
-    and get the list of vars from each file, no dupes, append cfgRoll with the any new vars found.  
-  - get the hashtable from cfgRoll before collecting  
+    and get the list of vars from each file, no dupes, append cfgRoll with the any new vars found.
+  - get the hashtable from cfgRoll before collecting
 
 #!markdown
 
 - [x] support interpolated variables  
-  iex saves the day  
-  interpolation is inevitable  
-  triple escape dollar sign,  
-  don't escape double quotes  
-  dblquotes must be paired  
+      iex saves the day  
+      interpolation is inevitable  
+      triple escape dollar sign,  
+      don't escape double quotes  
+      dblquotes must be paired
 
 #!markdown
 
-- [x] distinguish betn vars, lists and more  
+- [x] distinguish betn vars, lists and more
 
 #!pwsh
 
@@ -156,8 +160,8 @@
 #!markdown
 
 - [x] figure out git repo structure  
-  folder contains separate scripts to define vars for each registered script file  
-  outside the folder, one value file containing all variables and values  
-  with descriptions alongside meant to be edited by the user, gitignored  
-  and one markdown file detailing descriptions of each variable,  
-  this is the first copy of descriptions and vars  
+      folder contains separate scripts to define vars for each registered script file  
+      outside the folder, one value file containing all variables and values  
+      with descriptions alongside meant to be edited by the user, gitignored  
+      and one markdown file detailing descriptions of each variable,  
+      this is the first copy of descriptions and vars

@@ -8,3 +8,4 @@ tasks
 
 *.exe
 */bin/*
+.vscode/**
