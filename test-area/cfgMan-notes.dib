@@ -370,7 +370,7 @@ loadRollL(["load cfgRoll<br/>(./cfgRoll.ps1)"])
 loadRollV(["load cfgRoll<br/>(./cfgRoll.ps1)"])
 
 diffList([Check for news<br/>in new varList])
-addVarList([add Vnames from<br/>varList to cfgRoll])
+appList([add Vnames from<br/>varList to cfgRoll and cfgBox])
 
 addList([Add 'List'<br/>to syncStr])
 addValue([Add 'Value'<br/>to syncStr])
@@ -387,7 +387,7 @@ rmList([Remove 'List'<br/>from syncStr])
 rmValue([Remove 'Value'<br/>from syncStr])
 
 synced[/processed and synced\]
-notsynced[/"processed but not synced"\]
+abort[/"processed but not synced"\]
 
 in --> new?
 
@@ -398,7 +398,7 @@ ParseN --Call found--> newBox --> addList --> rmNew --> list?
 list? --NO--> value?
 list? --YES--> ParseL --Call found--> loadRollL--> diffList
 diffList --None new--> bumpScript
-diffList --Some new--> addValue --> addVarList --> saveRoll --> bumpRollL --> bumpScript
+diffList --Some new--> addValue --> appList --> saveRoll --> bumpScript
 bumpScript --> rmList-->value?
 
 value? --NO--> sync?
@@ -408,8 +408,8 @@ undef? --Some undef--> sync?
 undef? --None undef--> copyVals --> bumpRollV -->rmValue --> sync?
 
 sync? --YES--> synced
-sync? --NO--> notsynced
+sync? --NO--> abort
 
 
-ParseN & ParseL & ParseV --Not found--> notsynced
+ParseN & ParseL & ParseV --Not found--> abort
 ```
