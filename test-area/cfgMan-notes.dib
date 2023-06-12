@@ -413,3 +413,46 @@ sync? --NO--> abort
 
 ParseN & ParseL & ParseV --Not found--> abort
 ```
+
+#!markdown
+
+#### Deferred writeops:
+
+#!markdown
+
+Now, time to think about file writebacks  
+I was thinking about the possible advantages (if any)
+of having files be written to only once at the end of preparing all scripts' boxes
+and the roll's new contents. essentially minimising the time window between the
+first and last file write operation and requiring only one file write operation per cfgBox(N)
+and one for the cfgRoll(1) for a total of [N+1]() writeops instead of 3 writes(list upd & values upd)
+for each script's cfgbox and roll update requiring [3N]() writeops
+So,
+Pros:
+
+- 3N to N+1, 66% less writeops, saves time
+- better adaptable to remote stores(not used rn)
+
+Cons:
+
+- more complexity
+- much more mem usage
+
+Thinking of mem usage, If I defer writeops for only cfgRoll, it'll still save a lot of wrtie ops while getting rid of the memory required to defer N cfgBoxes So,
+
+##### Deferred writeops for cfgRoll:
+
+Pros:
+
+- 3N to 2N+1, 33% less writeops, saves time
+- better adaptable to remote stores(not used rn)
+- almost the same mem usage
+
+Cons:
+
+- more complexity
+
+But, since boxes need to save cfgRoll's last write time, deferring only cfgRoll's writeback isn't possible without deferring cfgBoxes' writebacks as well. 😅
+
+> Conclusion:  
+> Deferred writeops don't seem to be worth the time they'll need to be coded
