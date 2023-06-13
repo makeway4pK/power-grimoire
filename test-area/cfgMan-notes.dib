@@ -377,8 +377,6 @@ addValue([Add 'Value'<br/>to syncStr])
 
 copyVals([Copy values from cfgRoll foreach var<br/>in varList into cfgBox])
 
-saveRoll([Write back to cfgRoll])
-bumpRollL([Note cfgRoll's last<br/>write time in cfgBox])
 bumpRollV([Note cfgRoll's last<br/>write time in cfgBox])
 bumpScript([Note script's last<br/>write time in cfgBox])
 
@@ -398,7 +396,7 @@ ParseN --Call found--> newBox --> addList --> rmNew --> list?
 list? --NO--> value?
 list? --YES--> ParseL --Call found--> loadRollL--> diffList
 diffList --None new--> bumpScript
-diffList --Some new--> addValue --> appList --> saveRoll --> bumpScript
+diffList --Some new--> addValue --> appList --> bumpScript
 bumpScript --> rmList-->value?
 
 value? --NO--> sync?
@@ -456,3 +454,28 @@ But, since boxes need to save cfgRoll's last write time, deferring only cfgRoll'
 
 > Conclusion:  
 > Deferred writeops don't seem to be worth the time they'll need to be coded
+
+#!markdown
+
+#### Writeback methods
+
+#!markdown
+
+Next up are the simple writeback methods for the [File]() class.
+
+- Where are writebacks used?
+  - bumps to boxes
+  - var adds to roll
+  - var and val adds to boxes
+- inputs/data needed by each:
+  - bump2box:
+    - file time
+    - box header
+    - box content
+  - var2roll:
+    - rollList
+    - diffList
+  - var+val2box:
+    - box header
+    - varList
+    - rollList

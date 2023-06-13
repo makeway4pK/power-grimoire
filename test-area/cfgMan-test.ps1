@@ -12,9 +12,6 @@ Class cfgInfo {
     static [hashtable] $newRoll
     static [boolean] $GotRoll = $false
     
-    # scriptTime=''
-    # rollTime=''
-    # boxTime=''
     [File] $Script
     [File] $Box
     [string[]] $varList
@@ -39,7 +36,8 @@ Class cfgInfo {
         $this.Script = [File]::new($path)
         # If provided, Always default to the provided varList
         # Simply [boolean]$this.varList to check if varList is available
-        $this.varList = $varList
+        # After cleanup of course
+        $this.varList = $this.CleanupList($varList)
         $this.Prepare()
     }
     [void] Prepare() {
@@ -86,12 +84,21 @@ Class cfgInfo {
         }
         return $false
     }
+    [string[]] CleanupList([string[]] $List) {
+        return (($List -replace '[^\s\w\d_]'
+            ).trim() | ? {
+                $_.length -gt 0
+            }) -replace ' ', '_'
+    }
     [string[]] GetList([boolean]$FromScript = $false) {
         # check if varList already retrieved
         if ($this.GotList) { return $this.varList }
+        
+        [string[]] $List = ''
         # getList from Box when possible
         if (!$FromScript) {
-            $this.varList = &$this.Box.Path
+            $List = &$this.Box.Path
+            $this.varList = $this.CleanupList($List)
             if ($this.varList) {
                 $this.GotList = $true 
                 return $this.varList 
@@ -100,9 +107,10 @@ Class cfgInfo {
         # find cfgManCall in the script
         if ($slice = $this.Script.GetContent() | sls '^(.*\n)*.*'+[cfgInfo]::callPattern+'[^\n]*\n') {
             # execute lines until the cfgMan call to get the varlist from script content
-            iex($slice.Matches.Groups[0].Value -replace [cfgInfo]::callPattern, '$this.varList =') 2>&1>$null
+            iex($slice.Matches.Groups[0].Value -replace [cfgInfo]::callPattern, '$List =') 2>&1>$null
             $this.Script.DropContent()
         }
+        $this.varList = $this.CleanupList($List)
         $this.GotList = $true
         return $this.varList
     }
@@ -120,7 +128,7 @@ Class cfgInfo {
     }
     [void] UpdateList() {
         # get varList from script
-        [string[]] $List = $this.GetList($true)
+        [string[]] $List = $this.GetList('from Script')
         [hashtable]$cfgRoll = $this.GetRoll()
         
         # [1] find new vars to add to cfgRoll
@@ -139,24 +147,23 @@ Class cfgInfo {
             # add new vars to cfgRoll, no overwriting
             foreach ($v in $diffs) { [cfgInfo]::newRoll.Add($v, '') }
             # write to cfgRoll and cfgBox
-            # TODO  stage changes to cfgRoll
-            # TODO  stage changes to cfgBox
+            if (!$this.CommitToRoll()) { return }
+            # also note down Script's write time as ack of vars found
+            if (!$this.CommitToBoxAndBump('Script')) { return }
         }
-        # note down Script's write time as ack of new vars found
-        $this.bumpScript()
+        else {
+            # also note down Script's write time as ack of changes processed
+            if (!$this.BumpScript()) { return }
+        }
         # mark List updated
         $this.PendingList = $false
     }
     [void] UpdateValues() {
-        # for this function always get varList from Box
-        [string[]] $List = $this.GetList()
-        [hashtable]$cfgRoll = $this.GetRoll()
         # find any undefined vars
         if ($this.FindUndefs()) { return }
         # if all vars are defined, merge values to box
-        # TODO add values to cfgBox
-        # note cfgRoll's last write time as ack values updated
-        $this.bumpRoll()
+        # and note cfgRoll's last write time as ack of values updated
+        if (!$this.CommitToBoxAndBump('Roll')) { return }
         # mark Values update done
         $this.PendingValues = $false
     }
@@ -183,14 +190,81 @@ Class cfgInfo {
             $rollStamp -ne [cfgInfo]::Roll.Time) { $this.PendingValues = $true; $flag = $true }
         return $flag
     }
+    [string] ArrayToCodeString([string[]]$arr, [uint16]$lvl = 2) {
+        [string] $code = "@("
+        foreach ($str in $arr) {
+            $code += "`n" + ' ' * 4 * $lvl + ","
+            if ($str -is [array]) {
+                $code += $this.ArrayToCodeString($str, $lvl + 1)
+                continue
+            }
+            $code += "'" + $str + "'"
+        }
+        $code += "`n" + ' ' * 4 * ($lvl - 1) + ')'
+        return $code
+    }
+    [string] RollToCodeString([string[]]$keys, [hashtable]$roll) {
+        [string] $code = "[ordered]@{"
+        foreach ($key in $keys) {
+            $code += "`n" + ' ' * 4
+            $code += "'" + $key + "' = "
+            $value = $roll[$key]
+            if ($value -is [Array]) {
+                $code += $this.ArrayToCodeString($value) + ';'
+                continue
+            }
+            $code += "'" + $value + "';"
+        }
+        return $code
+    }
+    [boolean] CommitToBoxAndBump([string] $bumpFile) {
+        # This code should be unreachable if varList is not found or is empty so,
+        # it's okay to use varList directly, skips a branch
+        [string] $boxContent = $this.RollToCodeString($this.varList, [cfgInfo]::newRoll)
+        
+        # Now for the Bump...
+        $len = [cfgInfo]::timeFormat.Length
+        $off = 1
+        [string] $header = $this.Box.GetContent()
+        # [string] $header=[string]::new()
+        if ($bumpFile -eq 'Script') {
+            $header = $header.Substring($off + $len, $off + 2 * $len)
+            $header = $this.Script.Time + $header
+        }
+        elseif ($bumpFile -eq 'Roll') {
+            $header = $header.Substring($off, $off + $len)
+            $header += [cfgInfo]::Roll.Time
+        }
+        else { $header = $header.Substring($off, $off + 2 * $len) }
+        $header = '#' + $header
+        
+        $boxContent = $header + (Get-Date).AddSeconds(7).ToUniversalTime().ToString([cfgInfo]::timeFormat) + "`n" + $boxContent
+        return $this.Box.SetContent($boxContent)
+    }
+    [boolean] BumpScript() {
+        $len = [cfgInfo]::timeFormat.Length
+        $off = 1
+        [string] $boxContent = $this.Box.GetContent()
+        [string] $header = '#' + $this.Script.Time + $boxContent.Substring($off + $len, $off + 2 * $len)
+        
+        $boxContent = $boxContent.Substring($off + 3 * $len)
+        $boxContent = $header + (Get-Date).AddSeconds(7).ToUniversalTime().ToString([cfgInfo]::timeFormat) + $boxContent
+        return $this.Box.SetContent($boxContent)
+    }
+    [boolean] CommitToRoll() {
+        # This code should be unreachable if varList is not found or is empty so,
+        # it's okay to use varList directly, skips a branch
+        [string] $rollContent = $this.RollToCodeString([cfgInfo]::newRoll.Keys, [cfgInfo]::newRoll)
+        
+        return [cfgInfo]::Roll.SetContent($rollContent)
+    }
 }
 Class File {
     [string]  $Path
     [boolean] $Missing = $true
-    [boolean] $GotAllContent = $false
     [boolean] $GotContent = $false
     [System.IO.FileSystemInfo]$FSI
-    $Content
+    hidden $Content
     [string]$Time
     
     File ([string] $path) {
@@ -208,69 +282,28 @@ Class File {
             $this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
         }
     }
-    
     [string] GetContent() {
         if (!$this.GotContent) { $this.RefreshContent() }
         return $this.Content    
     }
-    [string] RefreshContent([int]$lines = 0) {
-        if ($lines -lt 0) {
-            $this.GotAllContent = $false
-            $this.Content = gc $this.FSI -Raw -Last (-$lines)
-            if ($this.Content.length) {
-                $this.GotContent = $true
-            }
-            else {
-                $this.GotContent = $false
-            }
-            return $this.Content
-        } if ($lines -gt 0) {
-            $this.GotAllContent = $false
-            $this.Content = gc $this.FSI -Raw -First $lines	
-            if ($this.Content.length) {
-                $this.GotContent = $true
-            }
-            else {
-                $this.GotContent = $false
-            }
-            return $this.Content
-        }
+    [string] RefreshContent() {
         $this.Content = gc $this.FSI -Raw
-        if ($this.Content.length) {
-            $this.GotContent = $true
-            $this.GotAllContent = $true
-        }
-        else {
-            $this.GotContent = $false 
-            $this.GotAllContent = $false
-        }
+        if ($this.Content.length) { $this.GotContent = $true }
+        else { $this.GotContent = $false }
         return $this.Content
     }
-    DropContent() {
+    [boolean] SetContent([string] $newContent) {
+        [boolean] $success = sc -Path $this.Path -Value $newContent -PassThru
+        if ($this.GotContent) { $this.Content = $newContent }
+        if ($success) {
+            $this.FSI.Refresh()
+            $this.Time = $this.FSI.LastAccessTimeUtc.ToString([cfgInfo]::timeFormat)
+        }
+        return $success        
+    }
+    [void] DropContent() {
         $this.Content = [string]::new('')
-        $this.GotContent = $this.GotAllContent = $false
+        $this.GotContent = $false
     }
 }
 function Set-Vars([string[]] $toSetVarList) {}
-function Update-cfgBox([string]$script) {
-    $script = gi $script
-    $scriptRel = $script | Resolve-Path -Relative
-    $roll = gi ./cfgBox/cfgRoll.ps1
-    $box = gi ./cfgBox/script.cfgBox.ps1
-    gc $script -raw | ac $roll
-    gc $roll -raw | ac $box
-    $roll.Refresh()
-    $box.Refresh()
-    $boxHead = "<#`n"
-    $boxhead += $script.LastWriteTime.toString('MMM-dd-yyyy HH:mm:ss') + "`tLast updated time( " + $scriptRel + " )`n"
-    $boxHead += $roll.LastWriteTime.toString('MMM-dd-yyyy HH:mm:ss') + "`tLast updated time( cfgRoll )`n"
-    $boxHead += (Get-Date).toString('MMM-dd-yyyy HH:mm:ss') + "`tLast updated time( cfgBox )`n"
-    $boxhead += "#>`n"
-    $boxhead  | sc $box
-}
-$toSetVarList = (($setVars -replace '[^\s\w\d_]'
-    ).trim() | ? {
-        $_.length -gt 0
-    }) -replace ' ', '_'
-
-
