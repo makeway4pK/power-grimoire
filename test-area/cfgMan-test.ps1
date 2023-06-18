@@ -8,7 +8,7 @@ Class cfgInfo {
     static [File] $Roll = [File]::new('./cfgRoll.ps1')
     static [string] $callPattern = '\. \.[/\\]cfgMan\.ps1 -get'
     static [bool] $rollMissing = [cfgInfo]::Roll.Missing
-    static [hashtable] $oldRoll = [hashtable]::new([StringComparer]::CurrentCultureIgnoreCase)
+    static [hashtable] $oldRoll
     static [hashtable] $newRoll
     static [bool] $GotRoll = $false
     
@@ -56,7 +56,8 @@ Class cfgInfo {
     }
     [string] FindBoxPath() {
         $rel = $this.Script.FSI.Directory | Resolve-Path -Relative
-        if ($rel -match '\.\.') {
+        if ($rel -ne (resolve-path -relative.) -and
+            $rel -match '\.\.') {
             $this.CanSkip = $true
             return ''
         }
@@ -261,7 +262,7 @@ Class cfgInfo {
     }
 }
 Class File {
-    [string]  $Path
+    [string] $Path
     [bool] $Missing = $true
     [bool] $GotContent = $false
     [System.IO.FileSystemInfo]$FSI
@@ -269,6 +270,7 @@ Class File {
     [string]$Time
     
     File ([string] $path) {
+        if (!$path) { return }
         $this.path = $path
         if (!(Test-Path $path)) { return }
         $this.FSI = gi $path
@@ -314,6 +316,7 @@ Class File {
 function Set-Vars([string[]] $toSetVarList) {}
 if (!$path) { $path = gci -recurse *.ps1 -exclude *.cfgbox.ps1 }
 foreach ($p in $path) {
+    'processing' + $p
     $x = [cfgInfo]::new($p)
     $x = $null
 }
