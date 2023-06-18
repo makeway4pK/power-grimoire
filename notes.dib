@@ -8,15 +8,11 @@
 
 #!markdown
 
-- [x] need a standard for cfgman calls, for the varlist specifically
-  - parser will capture everything from top of script to the first cfgman call,  
-    replace cfgman with output varname for the var list and use iex to get the list of variable names.
-  - Thus, cfgman calls will need to:
-    - be placed as close to the top as possible, before any sort of operations  
-      like changing working dirs or running init methods
-    - cfgman call must be contained in a single line, so if the list needs multiple lines, define the list in a var above the call and then use the var in the cfgman call.
-  - the captured param block will throw an error so dump the iex's error stream (and output stream as well?)  
-    like so `iex $captured 2>&1>$null`
+decided to postpone fancy features for cfg-manager:
+- [ ] cfgRef support+maintenance
+- [ ] 'used by files' list for variables in cfgref
+- [ ] hashtables support
+- [ ] saveback support (scripts can save new values for variables/hashtables)
 
 #!markdown
 
@@ -69,6 +65,18 @@ $ips+=if($c--){'.'}else{$c=3;' '}
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] need a standard for cfgman calls, for the varlist specifically
+  - parser will capture everything from top of script to the first cfgman call,  
+    replace cfgman with output varname for the var list and use iex to get the list of variable names.
+  - Thus, cfgman calls will need to:
+    - be placed as close to the top as possible, before any sort of operations  
+      like changing working dirs or running init methods
+    - cfgman call must be contained in a single line, so if the list needs multiple lines, define the list in a var above the call and then use the var in the cfgman call.
+  - the captured param block will throw an error so dump the iex's error stream (and output stream as well?)  
+    like so `iex $captured 2>&1>$null`
 
 #!markdown
 
