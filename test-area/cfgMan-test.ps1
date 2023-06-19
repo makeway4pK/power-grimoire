@@ -1,6 +1,6 @@
 param(
-    [string[]] $path,
-    [string[]] $setVars,
+    [string] $path,
+    [string[]] $get,
     [switch] $parse
 )
 Class cfgInfo {
@@ -30,12 +30,14 @@ Class cfgInfo {
         #  with varList and value changes if any.
         $this.Prepare()
     }
-    cfgInfo ([string] $path, [string[]]$varList) {
+    cfgInfo ([string[]]$varList) {
+        $path = $Script:MyInvocation.ScriptName
         $this.Script = [File]::new($path)
         # If provided, Always default to the provided varList
         # Simply [bool]$this.varList to check if varList is available
         # After cleanup of course
         $this.varList = $this.CleanupList($varList)
+        # if ($this.varList) { $this.GotList = $true }    # this will let it skip parsing the script in case of new list
         $this.Prepare()
     }
     [void] Prepare() {
@@ -139,7 +141,7 @@ Class cfgInfo {
         
         # simple O(nlogn) lookup, still faster than diff cmdlet method above
         [string[]] $diffs = @()
-        foreach ($v in $List) { if (!$cfgRoll -ccontains $v) { $diffs += $v } }
+        foreach ($v in $List) { if ($cfgRoll -notcontains $v) { $diffs += $v } }
         # check if any new vars found
         if ($diffs.count -ne 0) {
             # mark for Value update
@@ -257,8 +259,20 @@ Class cfgInfo {
         # This code should be unreachable if varList is not found or is empty so,
         # it's okay to use varList directly, skips a branch
         [string] $rollContent = $this.RollToCodeString([cfgInfo]::newRoll.Keys, [cfgInfo]::newRoll)
-        
-        return [cfgInfo]::Roll.SetContent($rollContent)
+        if ([cfgInfo]::Roll.SetContent($rollContent)) {
+            [cfgInfo]::GotRoll = $false
+            return $true
+        }
+        return $false
+    }
+    [void] SetVars() {
+        if (!$this.Ready) { return }
+        $boxRoll = &($this.Box.path)
+        foreach ($var in $boxRoll.Keys) {
+            $value = $boxRoll[$var] -replace '"', '`"'
+            $value = iex "echo `"$value`""
+            sv -Scope Script -Name $var -Value $value
+        }
     }
 }
 Class File {
@@ -313,10 +327,30 @@ Class File {
         $this.GotContent = $false
     }
 }
-function Set-Vars([string[]] $toSetVarList) {}
-if (!$path) { $path = gci -recurse *.ps1 -exclude *.cfgbox.ps1 }
-foreach ($p in $path) {
-    'processing' + $p
-    $x = [cfgInfo]::new($p)
-    $x = $null
+
+if (!$get -and !$path) {
+    $scripts = gci -recurse *.ps1 -exclude *.cfgbox.ps1 
+    foreach ($s in $scripts) {
+        'processing: ' + $s
+        $item = [cfgInfo]::new($s)
+        if ($item.varList) {
+            'Secrets requested:'
+            $item.varList
+        }
+        if ($item.CanSkip) { 'Skipped' }
+        elseif ($item.Ready) { 'Box is updated' }else {
+            'Updates to cfgRoll pending: ' + $item.PendingList
+            'Updates to cfgBox pending: ' + $item.PendingValues
+        }
+        ''
+    }
+    return
+}
+
+if ($get) {
+    [cfgInfo]::new($get).SetVars()
+    return
+}
+if ($path) {
+    [cfgInfo]::new($path).SetVars()
 }
