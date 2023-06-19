@@ -59,18 +59,24 @@ pros:
 - overall an improvement over powershell for code
 - always available variable watch
 - note cells can be moved with [Alt+up/down]()
+- note comments! [Ctrl+Q](), or I think its just the comment line keybind
 
 cons:
-- dunno how to change default kernel for the notebook after creation 😭
 - no folding for notes in markdown view
 - checks inside checkboxes are almost invisible, I doubt settings or color theme tweaks can fix this
-- Markdown uses a big yet crowded font that's not even monospace,  
+- paddings are huge and Markdown uses a big yet crowded font that's not even monospace,  
   must be fixable in settings.
 - keyboard nav is fiddly when code output is involved
 - not an advantage compared to plain text for note-keeping
 - useful for everything except when actual scripts, in-built  
   variables and the runtime environment is involved, which is  
-  most of what I'm gonna do next.
+  most of what I'm gonna do next.  
+<!-- - dunno how to change default kernel for the notebook after creation 😭
+  [fixed-easy]Found a setting from the command palette to set defualt lang and extension -->
+
 
 gonna try taking notes with this for a while, maybe familiarity will fix it.
-Today's 22Apr, I'll review it after 4 days on yfk's bday
+
+16may
+I think this notebook isn't useful for code research rn
+but its handy for note-taking, preview and monospace in same editor

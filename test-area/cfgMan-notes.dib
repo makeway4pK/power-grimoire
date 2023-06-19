@@ -1,0 +1,481 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"pwsh","items":[{"aliases":[],"languageName":"pwsh","name":"pwsh"}]}}
+
+#!markdown
+
+Q: set-variable scopes options? parent scope possible?
+
+#!pwsh
+
+sv -Visibility Public abc cdf
+$varItem = (gv abc)
+
+#!pwsh
+
+$varItem.Attributes+'ascasc'
+
+#!pwsh
+
+$varItem.Options
+
+#!pwsh
+
+function setv([string] $str){
+	sv -Visibility Public FnVar $str
+}
+
+#!pwsh
+
+setv 'String1'
+gv FnVar
+
+#!markdown
+
+- okay, sv-vis public doesn't let vars out of functions, as expected... but that can be a problem
+
+#!markdown
+
+dot scoping the setter function from another script file seems an easy but clunky solution, last option
+
+#!pwsh
+
+function setv([string] $str){
+	sv -Visibility Script FnVar $str
+}
+
+#!pwsh
+
+setv 'String2'
+
+#!markdown
+
+set-var is limited in its scope options but I see a way by handling vars using the obj returned by get-var
+
+#!pwsh
+
+$gvOut=gv
+$gvOut.GetType()
+$gvOut.Contains('$')
+
+#!markdown
+
+- it's an Array of variable objects
+
+#!pwsh
+
+$gvOut=gv -Scope Script
+$gvOut.count
+$gvOut=gv -Scope Local
+$gvOut.count
+$gvOut=gv -Scope Global
+$gvOut.count
+help gv
+
+#!markdown
+
+I think this notebook isn't useful for code research rn
+
+#!markdown
+
+- PSVariable objs store referenced values, i.e. shallow copies of variables that they represent(or point to)
+
+#!markdown
+
+- `sv -scope Script` allows to set vars from inside a function
+
+#!pwsh
+
+rv Tvar*
+rv `@*
+1..9|foreach{sv "Tvar$_" "TestValue: $_"}
+# gv Tvar*
+$liTvar=(gv Tvar*)|select -Property Name,Value
+# rv $Tvars
+rv Tvar*
+rv `@*
+
+$liTvar|sv
+$Tvar5
+
+#!pwsh
+
+rv Tvar*
+rv `@*
+1..9|foreach{$liTvar=@{}}{
+	$var=(sv "Tvar$_" "TestValue: $_" -PassThru)
+	$liTvar[$var]=$var.Value
+	}
+# gv Tvar*
+rv Tvar*
+rv `@*
+
+$liTvar|sv
+# sv $liTvar
+$Tvar5
+# $Tvar5.GetType()
+
+#!markdown
+
+Current options for varaible setter:
+
+- Dot scoping -------------------------------- [<going with this\>]()
+  - `sv -scope script` allows setting variables from a function to the script scope
+  - which will be the caller script's scope since cfgMan will called by dot-scoping
+- pass values to caller
+  - needs loop in caller code (pls no)
+  - because set-variable can't handle collections/pipelined values
+
+#!markdown
+
+#### [Parsing]()
+
+- `Select-string` is faster than `Get-content` for bigger files
+  [Stack-Overflow: get-content high memory usage ](https://stackoverflow.com/questions/38870089/ps-get-content-high-memory-usage-is-there-a-more-efficient-way-to-filter-a-file)
+- ~~I might be able to parse varlists faster if added to the annotations that show up when using  
+  ` help <cmdlet/script>`~~
+
+#!markdown
+
+Tested all three on a ~2MB text file out of which ~500KB were notes, fresh terminal (I hope nothing was cached(??))
+![Alt text](Screenshot%202023-05-17%20182833.png)
+
+- [Select-string (sls)]() is fastest among the three, no need for annotations
+
+#!pwsh
+
+"Get-Help      took "+(Measure-command {get-help .\helptest.ps1 -full}).milliseconds+"ms for notes"
+"Get-Content   took "+(measure-command {(gc .\helptest.ps1) -match 'note'}).milliseconds+"ms for notes"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'code'}).milliseconds+"ms  for code"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'note'}).milliseconds+"ms  for notes"
+
+#!markdown
+
+Select-string has limitations: - can't retreive multiline pattern matches
+(not without getting content into a string first) - can't get data by line numbers
+
+On the other hand, get-content has a [-Raw]() option that gets content into a single string  
+instead of an array of strings which makes it [FAST](), even faster than sls, have a look:
+
+#!pwsh
+
+"Get-Help      took "+(Measure-command {get-help .\helptest.ps1 -full}).milliseconds+"ms for notes"
+"Get-Content   took "+(measure-command {(gc .\helptest.ps1) -match 'note'}).milliseconds+"ms for notes"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'code'}).milliseconds+"ms  for code"
+"Select-String took "+(measure-command {sls -path .\helptest.ps1 'note'}).milliseconds+"ms  for notes"
+
+"`nGet-Content-r took "+(measure-command {(gc .\helptest.ps1 -Raw) -match 'code'}).milliseconds+"ms for notes"
+
+#!markdown
+
+parser will capture everything from top of script to the first cfgman call,  
+ replace cfgman with output varname for the var list and use iex to get the list of variable names.
+
+- Thus, cfgman calls will need to:
+  - be placed as close to the top as possible, before any sort of operations  
+    like changing working dirs or running init methods
+  - cfgman call must be contained in a single line, so if the list needs multiple lines, define the list in a var above the call and then use the var in the cfgman call.
+- the captured param block will throw an error so dump the iex's error stream (and output stream as well?)  
+  like so `iex $captured 2>&1>$null`
+
+#!markdown
+
+cfgMan's job is to set variables requested by the script when called with -get option
+
+- -get option objective: set variables in varlist; 2 methods:
+  - get script name and use matching cfgBox without checking varlist
+    - need to confirm cfgBox is updated
+      - if not updated, parse script and update before setting values
+  - parse script to get varlist then set values
+    - gc-raw script data, find cfgman call, iex and get varlist, set vars
+- -collect option objective: get varlists from all scripts and make entries in cfgRoll + inform if any (new/old) vars are undefined.
+
+#!markdown
+
+#### [cfgBox Viability]()
+
+- For cfgBox to be useful, detecting changes in script & var values in cfgRoll must be faster than parsing and setting variables that way
+- detecting changes will be constant time while parsing will partly depend on script length and could be much faster if the script/varlist is small.
+- So, next up is finding the script length at which they perform similarly...
+
+#!markdown
+
+for checking if cfgBox values are updated, I need to:
+
+- check and maintain last modified times of:
+  - cfgRoll
+  - the script
+  - cfgBox
+    - cfgBox's modtime must be greater than cfgRoll's
+- if changes are detected in the script, the new varlist needs to be checked against the old varlist from cfgBox for differences and cfgBox updated if any found.
+- else if changes are detected only in cfgRoll, update cfgBox with varlist from cfgBox
+
+#!markdown
+
+Based on rough comparisons, It's worth using the cfgBox for files that are at least as big as Helptest.ps1(2.12MB):
+
+#!pwsh
+
+pushd ..
+(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1}).TotalMilliseconds
+(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1 -parse}).TotalMilliseconds
+popd
+
+#!markdown
+
+But for small files:
+
+#!pwsh
+
+# $path ='./test-area\cfgMan-test.ps1'  # 2.12MB
+$path = './stable/setgcc32.ps1'       # 6.81KB
+# $path = './stable/wadb.ps1'           # 0.31KB
+$n=1000
+
+pushd ..
+$boxTime=0
+$parseTime=0
+1..$n|%{
+$boxTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path}).TotalMilliseconds
+$parseTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path -parse}).TotalMilliseconds
+}
+"box check avg: "+$boxTime/$n
+"parser avg:    "+$parseTime/$n
+"file size:     "+[int]((gi $path).Length*100/1KB)/100+" KB"
+popd
+
+#!markdown
+
+Looks like they break even at around [7KB]() on my machine  
+Actually no, the parser is [only 3-5%]() better than the box check if not worse, even for a script as small as 0.31KB (setgcc32). On the other hand the parser can be over 8 times slower than the box check for a very big script(70ms to 9ms, both avg times for helptest.ps1)
+So in [Conclusion](), cfgBox is indeed useful and should be implemented to speedup runtime var fetches
+
+#!markdown
+
+#### Overall Flow for cfgMan
+
+#!markdown
+
+```mermaid
+graph TD
+
+get[\Script call/]
+collect[\"Direct call<br/>to collect"/]
+
+prune>Prune up-to-<br/>date scripts]
+parse([Parse])
+update>Sync roll<br/>and/or box]
+
+update?{{"Detect updates<br/>(cfgBox check)"}}
+undef?{{Find any<br/>undefined vars}}
+
+set[/Set vars or<br/>Return success\]
+abort[/Req var def<br/>and abort\]
+
+collect --gi *.ps1--> prune --For each--> parse
+parse --Var list--> update
+
+update? --Updates found---> update --> undef?
+
+undef? --None found--> set
+undef? --Undefs found--> abort
+
+subgraph Regular invocations
+get --Var list--> update?
+update? --No updates---> set
+end
+```
+
+- 'Detect updates' and 'Prune' will be using mostly the same logic
+- 'Sync' will consist of two steps: List update and Value update
+
+#!markdown
+
+#### Pruning Logic
+
+#!markdown
+
+Basically, filtering out up-to-date scripts.
+returns:
+
+- false for up-to-date scripts  
+  OR a string containing:
+- 'New' for new / untracked scripts
+- 'List' for scripts with pending varList updates
+- 'Value' for scripts with pending Value updates
+
+```mermaid
+graph TD
+in[\Script name/]
+
+box?{{Find rel cfgbox}}
+listChange?{{Last known script write time <br/>is less than<br/> Current Script last write time}}
+valueChange?{{Last known cfgRoll write time <br/>is less than<br/> Current cfgRoll last write time}}
+boxChange?{{Last known cfgBox write time +3seconds <br/>is less than<br/> Current cfgBox last write time}}
+syncString?{{syncString is empty?}}
+
+getTimes([Get last known<br/> times from cfgBox])
+
+addList[/means Script was<br/> changed, might have <br/>new varlist so add<br/> 'List' to syncString\]
+addValue[/means cfgRoll was <br/>changed, might have <br/>changes in values so add<br/> 'Value' to syncString\]
+addBox[/means cfgBox was <br/>changed manually, better refresh<br/> values from cfgRoll so add<br/> 'Value' to syncString\]
+
+new[/return 'New'\]
+false[/return $false\]
+syncString[/return syncString\]
+
+subgraph Regular invocations
+in -->box?
+box? --Box found--> getTimes --> listChange?
+listChange? --NO--> valueChange?
+valueChange? --NO--> boxChange?
+boxChange? --NO--> syncString?
+syncString? --YES--> false
+end
+
+box? --Not found--> new
+
+listChange? --YES--> addList --> valueChange?
+
+valueChange? --YES--> addValue --> syncString?
+
+boxChange? --YES--> addBox --> syncString?
+
+syncString? --NO--> syncString
+
+addValue~~~~addBox
+```
+
+#!markdown
+
+#### Sync logic
+
+#!markdown
+
+```mermaid
+graph TD
+in[\syncStr/]
+
+new?{{Contains 'New'?}}
+list?{{Contains 'List'?}}
+value?{{Contains 'Value'?}}
+undef?{{Find any undefined<br/>vars in cfgRoll}}
+sync?{{Sync string is empty?}}
+newBox([Make a new cfgBox for the script<br/>and note down all last write times])
+
+ParseN(["if varList undef, parse script,<br/>find cfgMan call and get varList"])
+ParseL(["if varList undef, parse script,<br/>find cfgMan call and get varList"])
+ParseV(["if varList undef, parse script,<br/>find cfgMan call and get varList"])
+loadRollL(["load cfgRoll<br/>(./cfgRoll.ps1)"])
+loadRollV(["load cfgRoll<br/>(./cfgRoll.ps1)"])
+
+diffList([Check for news<br/>in new varList])
+appList([add Vnames from<br/>varList to cfgRoll and cfgBox])
+
+addList([Add 'List'<br/>to syncStr])
+addValue([Add 'Value'<br/>to syncStr])
+
+copyVals([Copy values from cfgRoll foreach var<br/>in varList into cfgBox])
+
+bumpRollV([Note cfgRoll's last<br/>write time in cfgBox])
+bumpScript([Note script's last<br/>write time in cfgBox])
+
+rmNew([Remove 'New'<br/>from syncStr])
+rmList([Remove 'List'<br/>from syncStr])
+rmValue([Remove 'Value'<br/>from syncStr])
+
+synced[/processed and synced\]
+abort[/"processed but not synced"\]
+
+in --> new?
+
+new? --NO--> list?
+new? --YES--> ParseN
+ParseN --Call found--> newBox --> addList --> rmNew --> list?
+
+list? --NO--> value?
+list? --YES--> ParseL --Call found--> loadRollL--> diffList
+diffList --None new--> bumpScript
+diffList --Some new--> addValue --> appList --> bumpScript
+bumpScript --> rmList-->value?
+
+value? --NO--> sync?
+value? --YES--> ParseV --Call found--> loadRollV --> undef?
+
+undef? --Some undef--> sync?
+undef? --None undef--> copyVals --> bumpRollV -->rmValue --> sync?
+
+sync? --YES--> synced
+sync? --NO--> abort
+
+
+ParseN & ParseL & ParseV --Not found--> abort
+```
+
+#!markdown
+
+#### Deferred writeops:
+
+#!markdown
+
+Now, time to think about file writebacks  
+I was thinking about the possible advantages (if any)
+of having files be written to only once at the end of preparing all scripts' boxes
+and the roll's new contents. essentially minimising the time window between the
+first and last file write operation and requiring only one file write operation per cfgBox(N)
+and one for the cfgRoll(1) for a total of [N+1]() writeops instead of 3 writes(list upd & values upd)
+for each script's cfgbox and roll update requiring [3N]() writeops
+So,
+Pros:
+
+- 3N to N+1, 66% less writeops, saves time
+- better adaptable to remote stores(not used rn)
+
+Cons:
+
+- more complexity
+- much more mem usage
+
+Thinking of mem usage, If I defer writeops for only cfgRoll, it'll still save a lot of wrtie ops while getting rid of the memory required to defer N cfgBoxes So,
+
+##### Deferred writeops for cfgRoll:
+
+Pros:
+
+- 3N to 2N+1, 33% less writeops, saves time
+- better adaptable to remote stores(not used rn)
+- almost the same mem usage
+
+Cons:
+
+- more complexity
+
+But, since boxes need to save cfgRoll's last write time, deferring only cfgRoll's writeback isn't possible without deferring cfgBoxes' writebacks as well. 😅
+
+> Conclusion:  
+> Deferred writeops don't seem to be worth the time they'll need to be coded
+
+#!markdown
+
+#### Writeback methods
+
+#!markdown
+
+Next up are the simple writeback methods for the [File]() class.
+
+- Where are writebacks used?
+  - bumps to boxes
+  - var adds to roll
+  - var and val adds to boxes
+- inputs/data needed by each:
+  - bump2box:
+    - file time
+    - box header
+    - box content
+  - var2roll:
+    - rollList
+    - diffList
+  - var+val2box:
+    - box header
+    - varList
+    - rollList

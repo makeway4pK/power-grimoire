@@ -8,6 +8,14 @@
 
 #!markdown
 
+decided to postpone fancy features for cfg-manager:
+- [ ] cfgRef support+maintenance
+- [ ] 'used by files' list for variables in cfgref
+- [ ] hashtables support
+- [ ] saveback support (scripts can save new values for variables/hashtables)
+
+#!markdown
+
 - [ ] implement cfgManager, test it for:
   - [ ] strings
   - [ ] ints
@@ -33,11 +41,22 @@
 
 #!markdown
 
-- [ ] try wlanscan native call
+- [ ] use `adb shell cmd notification post -t`
 
 #!markdown
 
 - [ ] rewrite opkftp in powershell
+
+```pwsh
+arp -a|sls '.*?(((25[0-5]|(2[0-4]|1?\d)?\d)\.?\b){4}).*?dynamic.*?'-AllMatches|%{$_.matches|%{explorer "ftp://${user}:$pass@"+$_.groups[1].value+":$port"}}
+```
+
+```
+0..999|%{$c=3;$ips=''}{
+$ips+=$_
+$ips+=if($c--){'.'}else{$c=3;' '}
+}{$inTxt=$ips}
+```
 
 #!markdown
 
@@ -58,6 +77,18 @@
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] need a standard for cfgman calls, for the varlist specifically
+  - parser will capture everything from top of script to the first cfgman call,  
+    replace cfgman with output varname for the var list and use iex to get the list of variable names.
+  - Thus, cfgman calls will need to:
+    - be placed as close to the top as possible, before any sort of operations  
+      like changing working dirs or running init methods
+    - cfgman call must be contained in a single line, so if the list needs multiple lines, define the list in a var above the call and then use the var in the cfgman call.
+  - the captured param block will throw an error so dump the iex's error stream (and output stream as well?)  
+    like so `iex $captured 2>&1>$null`
 
 #!markdown
 
@@ -111,6 +142,10 @@
        **decision**: try-catch exe usages, log error msgs pointing to  
        (1) build instructions AND  
        (2) prebuilt/encoded (easy access) binaries
+
+#!markdown
+
+- [x] try notebook mode, from polyglot extension
 
 #!markdown
 

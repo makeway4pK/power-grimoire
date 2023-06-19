@@ -5,7 +5,7 @@ param(
 	[switch] $QNoAck,
 	[switch] $QOutSerials
 )
-	
+. ./cfgMan.ps1 -get 'macStoreXml'
 $macStoreXml = "$PSScriptRoot/../caches/WadbMacStore.xml"
 function Wadb {
 	do { adb start-server }while ($? -eq $false)

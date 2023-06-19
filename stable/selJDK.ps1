@@ -12,11 +12,13 @@
 
 # Define directory to choose from
 # And if projects are to be reconfigured, parents of those folders,
-	
-. ./cfgMan.ps1 -get @(
+
+$cfgList = @(
 	'selJDK_chooseFrom',
 	'selJDK_projFolderList'
 )
+
+. ./cfgMan.ps1 -get $cfgList
 # any suffix to append to selected path from $selJDK_chooseFrom, for $whichEnvVar
 $suffixForVar = ''
 if ($suffixForVar.Length -gt 0) { $suffixForVar = "\$suffixForVar" }
