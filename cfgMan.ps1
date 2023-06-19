@@ -1,7 +1,6 @@
 param(
 	[string] $path,
-	[string[]] $get,
-	[switch] $parse
+	[string[]] $get
 )
 Class cfgInfo {
 	static [string] $timeFormat = 'MMssyyHHddmm'
