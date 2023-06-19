@@ -57,7 +57,7 @@ function isValidPortNum {
 	param(
 		[string] $portNumStr
 	)
-	$portNum = $portNumStr.ToUInt16($null)
+	$portNum = [uint16]$portNumStr
 	if ($portNum -lt 1024 -OR $portNum -gt 65535) {
 		# -OR ($portNum -gt )) 
 		return $false
