@@ -329,29 +329,30 @@ Class File {
 	}
 }
 
-if (!$get -and !$path) {
-	$scripts = gci -recurse *.ps1 -exclude *.cfgbox.ps1 
-	foreach ($s in $scripts) {
-		'processing: ' + $s
-		$item = [cfgInfo]::new($s)
-		if ($item.varList) {
-			'Secrets requested:'
-			$item.varList
-		}
-		if ($item.CanSkip) { 'Skipped' }
-		elseif ($item.Ready) { 'Box is updated' }else {
-			'Updates to cfgRoll pending: ' + $item.PendingList
-			'Updates to cfgBox pending: ' + $item.PendingValues
-		}
-		''
-	}
-	return
-}
-
 if ($get) {
 	[cfgInfo]::new($get).SetVars()
 	return
 }
-if ($path) {
-	[cfgInfo]::new($path).SetVars()
+
+function ProcessBox([string]$path) {
+	'processing: ' + $path
+	$item = [cfgInfo]::new($path)
+	if ($item.varList) {
+		'Secrets requested:'
+		$item.varList
+	}
+	if ($item.CanSkip) { 'Skipped' }
+	elseif ($item.Ready) { 'Box is updated' }else {
+		'Updates to cfgRoll pending: ' + $item.PendingList
+		'Updates to cfgBox pending: ' + $item.PendingValues
+	}
+	''
 }
+
+if ($path) {
+	ProcessBox($path)
+	return
+}
+
+$scripts = gci -recurse *.ps1 -exclude *.cfgbox.ps1 
+foreach ($s in $scripts) { ProcessBox($s) }
