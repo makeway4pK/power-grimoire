@@ -58,8 +58,9 @@ Class cfgInfo {
 	}
 	[string] FindBoxPath() {
 		$rel = $this.Script.FSI.Directory | Resolve-Path -Relative
-		if ($rel -ne (resolve-path -relative.) -and
-			$rel -match '\.\.') {
+		if ($rel -eq (resolve-path -relative.) -or
+			$rel -match '\.\.' -or
+			$rel -match (resolve-path -relative cfgBox)) {
 			$this.CanSkip = $true
 			return ''
 		}
