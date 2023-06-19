@@ -13,6 +13,7 @@ decided to postpone fancy features for cfg-manager:
 - [ ] 'used by files' list for variables in cfgref
 - [ ] hashtables support
 - [ ] saveback support (scripts can save new values for variables/hashtables)
+- [ ] extended comments
 
 #!markdown
 
