@@ -216,9 +216,13 @@ Based on rough comparisons, It's worth using the cfgBox for files that are at le
 
 #!pwsh
 
+$path ='./test-area/helptest.ps1'     # 2.12MB
+# $path = './stable/setgcc32.ps1'       # 0.31KB
+# $path = './stable/wadb.ps1'           # 6.81KB
+
 pushd ..
-(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1}).TotalMilliseconds
-(measure-command{./test-area\cfgMan-test.ps1 -path ./test-area\helptest.ps1 -parse}).TotalMilliseconds
+(measure-command{./cfgMan.ps1 -path $path}).TotalMilliseconds
+(measure-command{./cfgMan.ps1 -path $path -parse}).TotalMilliseconds
 popd
 
 #!markdown
@@ -227,17 +231,17 @@ But for small files:
 
 #!pwsh
 
-# $path ='./test-area\cfgMan-test.ps1'  # 2.12MB
-$path = './stable/setgcc32.ps1'       # 6.81KB
-# $path = './stable/wadb.ps1'           # 0.31KB
+$path ='./test-area/helptest.ps1'     # 2.12MB
+# $path = './stable/setgcc32.ps1'       # 0.31KB
+# $path = './stable/wadb.ps1'           # 6.81KB
 $n=1000
 
 pushd ..
 $boxTime=0
 $parseTime=0
 1..$n|%{
-$boxTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path}).TotalMilliseconds
-$parseTime+=(measure-command{./test-area/cfgMan-test.ps1 -path $path -parse}).TotalMilliseconds
+$boxTime+=(measure-command{./cfgMan.ps1 -path $path}).TotalMilliseconds
+$parseTime+=(measure-command{./cfgMan.ps1 -path $path -parse}).TotalMilliseconds
 }
 "box check avg: "+$boxTime/$n
 "parser avg:    "+$parseTime/$n
