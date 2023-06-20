@@ -1,6 +1,7 @@
 param(
 	[string] $path,
-	[string[]] $get
+	[string[]] $get,
+	[switch] $parse
 )
 Class cfgInfo {
 	static [string] $timeFormat = 'MMssyyHHddmm'
@@ -15,6 +16,7 @@ Class cfgInfo {
 	[File] $Box
 	[string[]] $varList
     
+	[bool] $ScriptParsed = $false
 	[bool] $GotList = $false
 	[bool] $CanSkip = $false
 	[bool] $PendingList = $false
@@ -96,7 +98,6 @@ Class cfgInfo {
 		# check if varList already retrieved
 		if ($this.GotList) { return $this.varList }
         
-		[string[]] $List = ''
 		# getList from Box when possible
 		if (!$FromScript) {
 			$List = &$this.Box.Path
@@ -107,6 +108,8 @@ Class cfgInfo {
 			}
 		}
 		# find cfgManCall in the script
+		[string[]] $List = @()
+		$this.ScriptParsed = $true		
 		if ($slice = $this.Script.GetContent() | sls ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*\n')) {
 			# execute lines until the cfgMan call to get the varlist from script content
 			iex($slice.Matches.Groups[0].Value -replace [cfgInfo]::callPattern, '$List =') 2>&1>$null
@@ -269,10 +272,21 @@ Class cfgInfo {
 		if (!$this.Ready) { return }
 		$boxRoll = &($this.Box.path)
 		foreach ($var in $boxRoll.Keys) {
-			$value = $boxRoll[$var] -replace '"', '`"'
-			$value = iex "echo `"$value`""
-			sv -Scope Script -Name $var -Value $value
+			sv -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
 		}
+	}
+	[string[]] EvalArr([string[]]$arr) {
+		if (!$this.Ready) { return '' }
+		[string[]]$values = @()
+		foreach ($value in $arr) {
+			if ($value -is [Array]) { $values += EvalArr($value) }
+			else {
+				$v = $value -replace '"', '`"'
+				$v = iex "echo `"$value`""
+				$values += $v
+			}
+		}
+		return $values
 	}
 }
 Class File {
@@ -336,6 +350,7 @@ if ($get) {
 function ProcessBox([string]$path) {
 	'processing: ' + $path
 	$item = [cfgInfo]::new($path)
+	if ($item.ScriptParsed) { 'Script had to be Parsed' }
 	if ($item.varList) {
 		'Secrets requested:'
 		$item.varList
@@ -349,6 +364,13 @@ function ProcessBox([string]$path) {
 }
 
 if ($path) {
+	if ($parse) {
+		$item = [cfgInfo]::new($path)
+		if (!$item.ScriptParsed) {
+			$item.GetList('from Script')
+		}
+		return
+	}
 	ProcessBox($path)
 	return
 }
