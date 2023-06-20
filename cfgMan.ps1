@@ -108,7 +108,7 @@ Class cfgInfo {
 			}
 		}
 		# find cfgManCall in the script
-		[string[]] $List = ''
+		[string[]] $List = @()
 		$this.ScriptParsed = $true		
 		if ($slice = $this.Script.GetContent() | sls ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*\n')) {
 			# execute lines until the cfgMan call to get the varlist from script content
@@ -272,10 +272,21 @@ Class cfgInfo {
 		if (!$this.Ready) { return }
 		$boxRoll = &($this.Box.path)
 		foreach ($var in $boxRoll.Keys) {
-			$value = $boxRoll[$var] -replace '"', '`"'
-			$value = iex "echo `"$value`""
-			sv -Scope Script -Name $var -Value $value
+			sv -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
 		}
+	}
+	[string[]] EvalArr([string[]]$arr) {
+		if (!$this.Ready) { return '' }
+		[string[]]$values = @()
+		foreach ($value in $arr) {
+			if ($value -is [Array]) { $values += EvalArr($value) }
+			else {
+				$v = $value -replace '"', '`"'
+				$v = iex "echo `"$value`""
+				$values += $v
+			}
+		}
+		return $values
 	}
 }
 Class File {
