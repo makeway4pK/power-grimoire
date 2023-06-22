@@ -8,6 +8,21 @@
 
 #!markdown
 
+- [ ] pingscan and save results
+  - runs on every connection
+  - saves result in cache
+  - skips scan and retrieves cached result on subsequent calls
+  - option to force rescan
+  - needs to be able to detect new connections (to rescan if new connections found)
+  - option to force retrieve cached list
+
+#!markdown
+
+- [ ] fix: wadb is slow is it? takes 8s and 5s on 1st n 2nd run  
+  3s for adb start-server is expected but maybe the 5s can be improved
+
+#!markdown
+
 - [ ] fix: cfgMan call pattern is case sensitive
 
 #!markdown
@@ -25,19 +40,6 @@
 #!markdown
 
 - [ ] use `adb shell cmd notification post -t`
-
-#!markdown
-
-- [ ] rewrite opkftp in powershell
-
-```powershell
-arp -a|sls '.*?(((25[0-5]|(2[0-4]|1?\d)?\d)\.?\b){4}).*?dynamic.*?'-AllMatches|%{$_.matches|%{explorer "ftp://${user}:$pass@"+$_.groups[1].value+":$port"}}
-
-0..999|%{$c=3;$ips=''}{
-$ips+=$_
-$ips+=if($c--){'.'}else{$c=3;' '}
-}{$inTxt=$ips}
-```
 
 #!markdown
 
@@ -77,6 +79,19 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] rewrite opkftp in powershell
+
+```powershell
+arp -a|sls '.*?(((25[0-5]|(2[0-4]|1?\d)?\d)\.?\b){4}).*?dynamic.*?'-AllMatches|%{$_.matches|%{explorer "ftp://${user}:$pass@"+$_.groups[1].value+":$port"}}
+
+0..999|%{$c=3;$ips=''}{
+$ips+=$_
+$ips+=if($c--){'.'}else{$c=3;' '}
+}{$inTxt=$ips}
+```
 
 #!markdown
 
