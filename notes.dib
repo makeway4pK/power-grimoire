@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] plotter?
+
+#!markdown
+
 - [ ] pingscan and save results
   - runs on every connection
   - saves result in cache
@@ -24,10 +28,6 @@
 #!markdown
 
 - [ ] fix: cfgMan call pattern is case sensitive
-
-#!markdown
-
-- [ ] just for fun, script a battery percentage logger
 
 #!markdown
 
@@ -79,6 +79,10 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] just for fun, script a battery percentage logger
 
 #!markdown
 
