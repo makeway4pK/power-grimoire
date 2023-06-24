@@ -59,13 +59,14 @@ Class cfgInfo {
 	}
 	[string] FindBoxPath() {
 		$rel = $this.Script.FSI.Directory | Resolve-Path -Relative
-		if (
-			$rel -match (resolve-path -relative cfgBox) -or
-			$rel -match '\.\.' -and
-			$rel -ne (resolve-path -relative.)
+		if ($rel -match (resolve-path -relative cfgBox) -or
+			$rel -match '\.\.'
 		) {
-			$this.CanSkip = $true
-			return ''
+			if ($rel -ne (resolve-path -relative.)) {
+				$this.CanSkip = $true
+				return ''
+			}
+			$rel = '.'
 		}
 		return './cfgBox/' + $rel + '/' + $this.Script.FSI.BaseName + '.cfgBox' + $this.Script.FSI.Extension
 	}
