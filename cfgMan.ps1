@@ -320,16 +320,19 @@ Class File {
 		}
 	}
 	[string] GetContent() {
+		if ($this.Missing) { return '' }
 		if (!$this.GotContent) { $this.RefreshContent() }
 		return $this.Content    
 	}
 	[string] RefreshContent() {
+		if ($this.Missing) { return '' }
 		$this.Content = gc $this.Path -Raw
 		if ($this.Content.length) { $this.GotContent = $true }
 		else { $this.GotContent = $false }
 		return $this.Content
 	}
 	[bool] SetContent([string] $newContent) {
+		if ($this.Missing) { return '' }
 		$success = [bool](sc -Path $this.Path -Value $newContent -PassThru)
 		if ($success) {
 			$this.GotContent = $true
@@ -342,6 +345,7 @@ Class File {
 		return $success        
 	}
 	[void] DropContent() {
+		if ($this.Missing) { return }
 		$this.Content = [string]::new('')
 		$this.GotContent = $false
 	}
