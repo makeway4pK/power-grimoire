@@ -115,9 +115,9 @@ Class cfgInfo {
 		# find cfgManCall in the script
 		[string[]] $List = @()
 		$this.ScriptParsed = $true		
-		if ($slice = $this.Script.GetContent() | sls ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*\n')) {
+		if ($slice = $this.Script.GetContent() | sls ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*$')) {
 			# execute lines until the cfgMan call to get the varlist from script content
-			iex($slice.Matches.Groups[0].Value -replace [cfgInfo]::callPattern, '$List =') 2>&1>$null
+			iex($slice.Matches.Groups[0].Value -ireplace [cfgInfo]::callPattern, '$List =') 2>&1>$null
 			$this.Script.DropContent()
 		}
 		$this.varList = $this.CleanupList($List)
