@@ -27,10 +27,6 @@
 
 #!markdown
 
-- [ ] fix: cfgMan call pattern is case sensitive
-
-#!markdown
-
 - [ ] use get-item
 
 #!markdown
@@ -79,6 +75,10 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] fix: cfgMan call pattern is case sensitive
 
 #!markdown
 

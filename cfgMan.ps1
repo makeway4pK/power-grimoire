@@ -38,7 +38,7 @@ Class cfgInfo {
 		# Simply [bool]$this.varList to check if varList is available
 		# After cleanup of course
 		$this.varList = $this.CleanupList($varList)
-		# if ($this.varList) { $this.GotList = $true }    # this will let it skip parsing the script in case of new list
+		if ($this.varList) { $this.GotList = $true }    # this will let it skip parsing the script or box in case of new list
 		$this.Prepare()
 	}
 	[void] Prepare() {
@@ -59,11 +59,14 @@ Class cfgInfo {
 	}
 	[string] FindBoxPath() {
 		$rel = $this.Script.FSI.Directory | Resolve-Path -Relative
-		if ($rel -eq (resolve-path -relative.) -or
-			$rel -match '\.\.' -or
-			$rel -match (resolve-path -relative cfgBox)) {
-			$this.CanSkip = $true
-			return ''
+		if ($rel -match (resolve-path -relative cfgBox) -or
+			$rel -match '\.\.'
+		) {
+			if ($rel -ne (resolve-path -relative.)) {
+				$this.CanSkip = $true
+				return ''
+			}
+			$rel = '.'
 		}
 		return './cfgBox/' + $rel + '/' + $this.Script.FSI.BaseName + '.cfgBox' + $this.Script.FSI.Extension
 	}
@@ -80,10 +83,8 @@ Class cfgInfo {
 		$this.UpdateList()
 	}
 	[bool] MakeNewBox() {
-		ni $this.Box.Path -Force
-		if (Test-Path $this.Box.Path) {
+		if ($this.Box.CreateFile()) {
 			$this.Box.SetContent('#' + '1' * 3 * [cfgInfo]::timeFormat.Length + "`n")
-			$this.Box = [File]::new($this.Box.Path)
 			return $true
 		}
 		return $false
@@ -91,7 +92,7 @@ Class cfgInfo {
 	[string[]] CleanupList([string[]] $List) {
 		if ($List.count -ne 0) {
 			return (($List -replace '[^\s\w\d_]'
-				).trim() | ? {
+				).trim() | Where-Object {
 					$_.length -gt 0
 				}) -replace ' ', '_'
 		}
@@ -113,9 +114,9 @@ Class cfgInfo {
 		# find cfgManCall in the script
 		[string[]] $List = @()
 		$this.ScriptParsed = $true		
-		if ($slice = $this.Script.GetContent() | sls ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*\n')) {
+		if ($slice = $this.Script.GetContent() | Select-String ('^(.*\n)*.*' + [cfgInfo]::callPattern + '[^\n]*$')) {
 			# execute lines until the cfgMan call to get the varlist from script content
-			iex($slice.Matches.Groups[0].Value -replace [cfgInfo]::callPattern, '$List =') 2>&1>$null
+			Invoke-Expression($slice.Matches.Groups[0].Value -ireplace [cfgInfo]::callPattern, '$List =') 2>&1>$null
 			$this.Script.DropContent()
 		}
 		$this.varList = $this.CleanupList($List)
@@ -214,7 +215,7 @@ Class cfgInfo {
 	}
 	[string] RollToCodeString([string[]]$keys, [hashtable]$roll) {
 		[string] $code = "[ordered]@{"
-		foreach ($key in $keys | sort) {
+		foreach ($key in $keys | Sort-Object) {
 			$code += "`n" + ' ' * 4
 			$code += "'" + $key + "' = "
 			$value = $roll[$key]
@@ -275,7 +276,7 @@ Class cfgInfo {
 		if (!$this.Ready) { return }
 		$boxRoll = &($this.Box.path)
 		foreach ($var in $boxRoll.Keys) {
-			sv -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
+			Set-Variable -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
 		}
 	}
 	[string[]] EvalArr([string[]]$arr) {
@@ -285,7 +286,7 @@ Class cfgInfo {
 			if ($value -is [Array]) { $values += EvalArr($value) }
 			else {
 				$v = $value -replace '"', '`"'
-				$v = iex "echo `"$value`""
+				$v = Invoke-Expression "echo `"$value`""
 				$values += $v
 			}
 		}
@@ -304,7 +305,7 @@ Class File {
 		if (!$path) { return }
 		$this.path = $path
 		if (!(Test-Path $path)) { return }
-		$this.FSI = gi $path
+		$this.FSI = Get-Item $path
 		$this.Path = $this.FSI.FullName
 		$this.Missing = !($this.FSI.Exists -and $this.FSI.Directory)
 		$this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
@@ -317,18 +318,31 @@ Class File {
 			$this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
 		}
 	}
+	[bool] CreateFile() {
+		if (!$this.Missing) { return $true }
+		New-Item $this.Path -Force
+		if (!(Test-Path $this.Path)) { return $false }
+		$this.FSI = Get-Item $this.Path
+		$this.Path = $this.FSI.FullName
+		$this.Missing = !($this.FSI.Exists -and $this.FSI.Directory)
+		$this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
+		return $true 
+	}
 	[string] GetContent() {
+		if ($this.Missing) { return '' }
 		if (!$this.GotContent) { $this.RefreshContent() }
 		return $this.Content    
 	}
 	[string] RefreshContent() {
-		$this.Content = gc $this.Path -Raw
+		if ($this.Missing) { return '' }
+		$this.Content = Get-Content $this.Path -Raw
 		if ($this.Content.length) { $this.GotContent = $true }
 		else { $this.GotContent = $false }
 		return $this.Content
 	}
 	[bool] SetContent([string] $newContent) {
-		$success = [bool](sc -Path $this.Path -Value $newContent -PassThru)
+		if ($this.Missing) { return '' }
+		$success = [bool](Set-Content -Path $this.Path -Value $newContent -PassThru)
 		if ($success) {
 			$this.GotContent = $true
 			$this.Content = $newContent
@@ -340,6 +354,7 @@ Class File {
 		return $success        
 	}
 	[void] DropContent() {
+		if ($this.Missing) { return }
 		$this.Content = [string]::new('')
 		$this.GotContent = $false
 	}
@@ -378,5 +393,5 @@ if ($path) {
 	return
 }
 
-$scripts = gci -recurse *.ps1 -exclude *.cfgbox.ps1 
+$scripts = Get-ChildItem -recurse *.ps1 -exclude *.cfgbox.ps1 
 foreach ($s in $scripts) { ProcessBox($s) }
