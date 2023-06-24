@@ -83,10 +83,8 @@ Class cfgInfo {
 		$this.UpdateList()
 	}
 	[bool] MakeNewBox() {
-		ni $this.Box.Path -Force
-		if (Test-Path $this.Box.Path) {
+		if ($this.Box.CreateFile()) {
 			$this.Box.SetContent('#' + '1' * 3 * [cfgInfo]::timeFormat.Length + "`n")
-			$this.Box = [File]::new($this.Box.Path)
 			return $true
 		}
 		return $false
@@ -319,6 +317,16 @@ Class File {
 			$this.Missing = !($this.FSI.Exists -and $this.FSI.Directory)
 			$this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
 		}
+	}
+	[bool] CreateFile() {
+		if (!$this.Missing) { return $true }
+		ni $this.Path -Force
+		if (!(Test-Path $this.Path)) { return $false }
+		$this.FSI = gi $this.Path
+		$this.Path = $this.FSI.FullName
+		$this.Missing = !($this.FSI.Exists -and $this.FSI.Directory)
+		$this.Time = $this.FSI.LastWriteTimeUtc.ToString([cfgInfo]::timeFormat)
+		return $true 
 	}
 	[string] GetContent() {
 		if ($this.Missing) { return '' }
