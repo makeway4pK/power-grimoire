@@ -91,10 +91,13 @@ Class cfgInfo {
 		return $false
 	}
 	[string[]] CleanupList([string[]] $List) {
-		return (($List -replace '[^\s\w\d_]'
-			).trim() | ? {
-				$_.length -gt 0
-			}) -replace ' ', '_'
+		if ($List.count -ne 0) {
+			return (($List -replace '[^\s\w\d_]'
+				).trim() | ? {
+					$_.length -gt 0
+				}) -replace ' ', '_'
+		}
+		return @()
 	}
 	[string[]] GetList([bool]$FromScript) {
 		# check if varList already retrieved
