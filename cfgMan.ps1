@@ -38,7 +38,7 @@ Class cfgInfo {
 		# Simply [bool]$this.varList to check if varList is available
 		# After cleanup of course
 		$this.varList = $this.CleanupList($varList)
-		# if ($this.varList) { $this.GotList = $true }    # this will let it skip parsing the script in case of new list
+		if ($this.varList) { $this.GotList = $true }    # this will let it skip parsing the script or box in case of new list
 		$this.Prepare()
 	}
 	[void] Prepare() {
