@@ -1,6 +1,7 @@
 param(
 	[Switch]$Deploy,
-	[Switch]$Compare
+	[Switch]$PairedCompare,
+	[Switch]$GroupedCompare
 )
 if ($Deploy) {
 	$VScodeXe = (gci($env:path -split ';' -match 'VS Code' -replace 'bin') | ? -Property Name -eq 'Code.exe').FullName
@@ -25,7 +26,7 @@ if ($Deploy) {
 	$s.Save()
 	return
 }
-if ($Compare) {
+if ($PairedCompare -or $GroupedCompare) {
 	$pathList = @()
 	[string] $path = ''
 	foreach ($token in $args) {
@@ -38,7 +39,14 @@ if ($Compare) {
 	}
 	if ($pathList.count -eq 0) { return }
 	$diffsCount = [int]($pathList.count / 2)
-	foreach ($i in 0..($diffsCount - 1)) {
-		code -r --diff $pathList[2 * $i] $pathList[2 * $i + 1]
+	if ($PairedCompare) {
+		foreach ($i in 0..($diffsCount - 1)) {
+			code -r --diff $pathList[2 * $i] $pathList[2 * $i + 1]
+		}
+	}
+	if ($GroupedCompare) {
+		foreach ($i in 0..($diffsCount - 1)) {
+			code -r --diff $pathList[$i] $pathList[$i + $diffsCount]
+		}
 	}
 }
