@@ -9,21 +9,31 @@ if ($Deploy) {
 		Write-Error -Message "`n`nVS code executable not found!`n Make sure VS code is installed and `n available in the path variable before trying again" -Category ResourceUnavailable
 		return
 	}
-	
 	[string]$pwsh = Resolve-Path "$PSScriptRoot/../modules/bin/powershellw.exe"
 	if (!$pwsh) {
 		$pwsh = 'powershell' 
 	}
-	
 	$ScriptPath = "$PSScriptRoot/" + $MyInvocation.MyCommand
-	$Shortcut = [Environment]::GetFolderPath('SendTo') + '/Compare Code.lnk'
-	$s = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut)
+	$Shortcut = [Environment]::GetFolderPath('SendTo') + '/Compare Code'
+	
+	$PairedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Paired)')
 	if (!$?) { return }
-	$s.TargetPath = $pwsh
-	$s.IconLocation = $VScodeXe
-	$s.Arguments = $ScriptPath + ' -Compare'
-	$s.WindowStyle = 7 # 1, 3, 7 = Normal, Maximized, Minimized
-	$s.Save()
+	$GroupedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Grouped)')
+	if (!$?) { return }
+	$PairedSCut.TargetPath = $pwsh
+	$GroupedSCut.TargetPath = $pwsh
+	$PairedSCut.IconLocation = $VScodeXe
+	$GroupedSCut.IconLocation = $VScodeXe
+	$PairedSCut.WindowStyle = 7 # 1, 3, 7 = Normal, Maximized, Minimized
+	$GroupedSCut.WindowStyle = 7 # 1, 3, 7 = Normal, Maximized, Minimized
+	$PairedSCut.Description = "Compare files using VS Code's diff editor"		
+	$GroupedSCut.Description = "Compare files using VS Code's diff editor"
+	
+	$PairedSCut.Arguments = $ScriptPath + ' -PairedCompare'
+	$GroupedSCut.Arguments = $ScriptPath + ' -GroupedCompare'
+			
+	$PairedSCut.Save()
+	$GroupedSCut.Save()
 	return
 }
 if ($PairedCompare -or $GroupedCompare) {
