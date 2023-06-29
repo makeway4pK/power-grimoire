@@ -37,26 +37,30 @@ if ($Deploy) {
 	return
 }
 if ($PairedCompare -or $GroupedCompare) {
-	$pathList = @()
-	[string] $path = ''
+	[string[]]$pathList = @()
+	$pathIndex = -1
 	foreach ($token in $args) {
 		if ($token -match ':') {
-			$pathList += $path
-			$path = $token
+			$pathIndex++
+			$pathList += $token
 			continue
 		}
-		$path += ' ' + $token
+		$pathList[$pathIndex] += ' ' + $token
 	}
-	if ($pathList.count -eq 0) { return }
-	$diffsCount = [int]($pathList.count / 2)
+	$pathIndex++
+	
+	if ($pathIndex -eq 0) { return }
+	$diffsCount = [math]::Floor($pathIndex / 2)
 	if ($PairedCompare) {
 		foreach ($i in 0..($diffsCount - 1)) {
-			code -r --diff $pathList[2 * $i] $pathList[2 * $i + 1]
+			code -r --diff "$($pathList[2 * $i])" "$($pathList[2 * $i + 1])"
 		}
 	}
 	if ($GroupedCompare) {
 		foreach ($i in 0..($diffsCount - 1)) {
-			code -r --diff $pathList[$i] $pathList[$i + $diffsCount]
+			code -r --diff "$($pathList[$i])" "$($pathList[$i + $diffsCount])"
 		}
 	}
 }
+
+## for some reason, cannot receive arg tokens that contain parentheses(recieves characters instead)
