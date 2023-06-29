@@ -4,7 +4,7 @@ param(
 	[Switch]$GroupedCompare
 )
 if ($Deploy) {
-	$VScodeXe = (gci($env:path -split ';' -match 'VS Code' -replace 'bin') | ? -Property Name -eq 'Code.exe').FullName
+	$VScodeXe = (Get-ChildItem($env:path -split ';' -match 'VS Code' -replace 'bin') | Where-Object -Property Name -eq 'Code.exe').FullName
 	if (!$VScodeXe) {
 		Write-Error -Message "`n`nVS code executable not found!`n Make sure VS code is installed and `n available in the path variable before trying again" -Category ResourceUnavailable
 		return
@@ -16,9 +16,9 @@ if ($Deploy) {
 	$ScriptPath = "$PSScriptRoot/" + $MyInvocation.MyCommand
 	$Shortcut = [Environment]::GetFolderPath('SendTo') + '/Compare Code'
 	
-	$PairedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Paired)')
+	$PairedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Paired).lnk')
 	if (!$?) { return }
-	$GroupedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Grouped)')
+	$GroupedSCut = (New-Object -ComObject wscript.shell).CreateShortcut($Shortcut + ' (Grouped).lnk')
 	if (!$?) { return }
 	$PairedSCut.TargetPath = $pwsh
 	$GroupedSCut.TargetPath = $pwsh
