@@ -1,5 +1,6 @@
 param(
-	[Switch]$Deploy
+	[Switch]$Deploy,
+	[Switch]$Compare
 )
 if ($Deploy) {
 	$VScodeXe = (gci($env:path -split ';' -match 'VS Code' -replace 'bin') | ? -Property Name -eq 'Code.exe').FullName
@@ -24,10 +25,20 @@ if ($Deploy) {
 	$s.Save()
 	return
 }
-if ($true) {
-	'' | sc ([system.environment]::getfolderpath('desktop') + '/file.txt')
-	$args -join ' ' | % { $_ | ac ([system.environment]::getfolderpath('desktop') + '/file.txt') }
-	return
+if ($Compare) {
+	$pathList = @()
+	[string] $path = ''
+	foreach ($token in $args) {
+		if ($token -match ':') {
+			$pathList += $path
+			$path = $token
+			continue
+		}
+		$path += ' ' + $token
+	}
+	if ($pathList.count -eq 0) { return }
+	$diffsCount = [int]($pathList.count / 2)
+	foreach ($i in 0..($diffsCount - 1)) {
+		code -r --diff $pathList[2 * $i] $pathList[2 * $i + 1]
+	}
 }
-code --diff $args[1] $args[0]
-if (!$?) { Read-host }
