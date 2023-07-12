@@ -17,6 +17,8 @@ param(
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
 
+if (!$Launch) { exit }
+$Launch += ' ' + $MyInvocation.UnboundArguments -join ' '
 $ok = $true
 
 if ($Charging) {
@@ -55,7 +57,7 @@ if (!$ok) { exit } # cancel if any condition not met
 
 #launch if all chosen conditions met
 if ($ok) {
-	&"$Launch"
+	&$Launch
 	if (!$?) { exit }
 	
 	if ($Focus[0]) {
