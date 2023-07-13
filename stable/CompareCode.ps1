@@ -63,4 +63,4 @@ if ($PairedCompare -or $GroupedCompare) {
 	}
 }
 
-## for some reason, cannot receive arg tokens that contain parentheses(recieves characters instead)
+## for some reason, cannot receive arg tokens that contain parentheses(receives null characters instead)
