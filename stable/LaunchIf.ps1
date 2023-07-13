@@ -8,10 +8,12 @@ param(
 	, [switch] $Online
 	, [switch] $Gamepad
 	, [switch] $Charging
+	, [switch] $Admin
 	
 	, [switch] $NotOnline
 	, [switch] $NotGamepad
 	, [switch] $NotCharging
+	, [switch] $NotAdmin
 	
 	, [string[]]$Focus = @('', 0, 0)	#array <processname,X,Y> click once at
 	#  X,Y after waiting for <processname>
@@ -23,6 +25,15 @@ param(
 
 if (!$Launch) { exit }
 $ok = $true
+
+if ($Admin -or $NotAdmin) {
+	if ($Admin -and $NotAdmin) { exit }
+	if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+				[Security.Principal.WindowsBuiltInRole] "Administrator")) {	$ok = $false }
+	if ($NotAdmin) { $ok -= 1 }
+	if (!$ok) { exit }
+	# cancel if any condition not met
+}
 
 if ($Charging -or $NotCharging) {
 	if ($Charging -and $NotCharging) { exit }
