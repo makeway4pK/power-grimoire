@@ -359,7 +359,7 @@ Class File {
 		$this.GotContent = $false
 	}
 }
-
+[cfgInfo]::GotRoll = $false
 if ($get) {
 	[cfgInfo]::new($get).SetVars()
 	return
