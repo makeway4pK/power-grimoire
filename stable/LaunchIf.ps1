@@ -3,16 +3,20 @@
 #  Author: makeway4pK
 
 param(
-	[switch] $Online
+	[string] $Launch					#command to launch
+	
+	, [switch] $Online
 	, [switch] $Gamepad
 	, [switch] $Charging
-	, [string]$Launch					#command to launch
-	# , [string]$ArgStr
+	
+	, [switch] $NotOnline
+	, [switch] $NotGamepad
+	, [switch] $NotCharging
+	
 	, [string[]]$Focus = @('', 0, 0)	#array <processname,X,Y> click once at
 	#  X,Y after waiting for <processname>
 	#  to launch; (1560,880) is bottom right
-	, [uint16]$FocusDelay = 20 #delay focus click after detecting
-	#  the process.
+	, [uint16] $FocusDelay = 20 #delay focus click after detecting the process.
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
@@ -20,14 +24,18 @@ param(
 if (!$Launch) { exit }
 $ok = $true
 
-if ($Charging) {
+if ($Charging -or $NotCharging) {
+	if ($Charging -and $NotCharging) { exit }
 	if (!(Get-WmiObject -class BatteryStatus -Namespace root\wmi).PowerOnline) {
 		$ok = $false
 	}
+	if ($NotCharging) { $ok -= 1 }
+	if (!$ok) { exit }
+	# cancel if any condition not met
 }
-if (!$ok) { exit } # cancel if any condition not met
 
-if ($online) {
+if ($Online -or $NotOnline) {
+	if ($Online -and $NotOnline) { exit }
 	$ok = $false
 	$networks = netsh wlan show interfaces
 	foreach ($ID in $wifi_ids) {
@@ -36,11 +44,14 @@ if ($online) {
 			break
 		}
 	}
+	if ($NotOnline) { $ok -= 1 }
+	if (!$ok) { exit }
+	# cancel if any condition not met
 }
-if (!$ok) { exit } # cancel if any condition not met
 
 # gamepad if 'game' or 'controller' found in any of Human Interface Devices' names
-if ($Gamepad) {
+if ($Gamepad -or $NotGamepad) {
+	if ($Gamepad -and $NotGamepad) { exit }
 	$ok = $false
 	$HIDs = Get-PnpDevice -PresentOnly -Class "HIDClass"
 	foreach ($device in $HIDs) {                           
@@ -49,8 +60,10 @@ if ($Gamepad) {
 			break
 		}
 	}
+	if ($NotGamepad) { $ok -= 1 }
+	if (!$ok) { exit }
+	# cancel if any condition not met
 }
-if (!$ok) { exit } # cancel if any condition not met
 
 
 
