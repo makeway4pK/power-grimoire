@@ -131,7 +131,8 @@ Class cfgInfo {
 		# if available, return it
 		if ([cfgInfo]::GotRoll) { return [cfgInfo]::oldRoll }
 		# if not available, get roll
-		[cfgInfo]::newRoll = [cfgInfo]::oldRoll = [hashtable]::new((&([cfgInfo]::Roll.Path)), [System.StringComparer]::CurrentCultureIgnoreCase)
+		[cfgInfo]::oldRoll = [hashtable]::new((&([cfgInfo]::Roll.Path)), [System.StringComparer]::CurrentCultureIgnoreCase)
+		[cfgInfo]::newRoll = [cfgInfo]::oldRoll.Clone()
 		[cfgInfo]::GotRoll = $true
 		return [cfgInfo]::oldRoll
 	}
