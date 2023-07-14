@@ -281,7 +281,7 @@ Class cfgInfo {
 				Set-Variable -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
 			}
 			else {
-				Set-Variable -Scope Script -Name $var -Value $boxRoll[$var]
+				Set-Variable -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])[0]
 			}
 		}
 	}
