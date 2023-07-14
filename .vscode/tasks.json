@@ -6,8 +6,13 @@
     {
       "label": "echo",
       "type": "shell",
-      "command": "powershell",
-      "args": [{ "quoting": "weak", "value": "${file} ${input:ScriptArgs}" }],
+      "command": "${file}",
+      "args": [
+        {
+          "quoting": "weak",
+          "value": "${input:ScriptArgs}"
+        }
+      ],
       "problemMatcher": [],
       "group": {
         "kind": "test",
