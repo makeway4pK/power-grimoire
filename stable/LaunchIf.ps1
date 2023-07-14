@@ -20,13 +20,12 @@ param(
 	# after $FocusDelay seconds
 	# (1560,880) is bottom right
 	, [string] $Focus
-	, [int[]]  $FocusAt = @(1500, 440)
+	, [int[]]  $FocusAt = @(780, 440)
 	, [uint16] $FocusDelay = 10        
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
-$MyInvocation.BoundParameters
-$FocusAt
+
 if (!$Launch) { exit }
 $ok = $true
 
@@ -160,6 +159,6 @@ public static void LeftClickAtPoint(int x, int y)
 '@
 		Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms, System.Drawing
 		#Send a click at a specified point
-		[Clicker]::LeftClickAtPoint([int]$Focus[0], [int]$Focus[1])
+		[Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
 	}
 }
