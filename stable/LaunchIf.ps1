@@ -5,6 +5,7 @@
 param(
 	[Parameter(ValueFromRemainingArguments = $true)]
 	[string] $Launch    #command to launch
+	, [string[]] $ArgStr
     
 	, [switch] $Online
 	, [switch] $Gamepad
@@ -20,7 +21,7 @@ param(
 	# after $FocusDelay seconds
 	# (1560,880) is bottom right
 	, [string] $Focus
-	, [int[]]  $FocusAt = @(780, 440)
+	, [int []] $FocusAt = @(780, 440)
 	, [uint16] $FocusDelay = 10        
 )
 # online if connected to any of the following networks
@@ -83,15 +84,23 @@ if ($Gamepad -or $NotGamepad) {
 
 #launch if all chosen conditions met
 if ($ok) {
-	iex ($Launch)
+	&$Launch $ArgStr
 	if (!$?) { exit }
     
 	if ($Focus) {
-		While (!(Get-Process $Focus)) {
+		Write-Host "Waiting for process named: $Focus" -NoNewline
+		While (!(Get-Process | ? Name -match $Focus)) {
+			Write-Host '.' -NoNewline
 			# Increase wait time to accomodate for initialization (trial-error)
 			Start-Sleep 1
 		}
-		Start-Sleep $FocusDelay
+		''
+		$FocusDelay++
+		while (--$FocusDelay) {
+			Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) in $FocusDelay seconds     " -NoNewline
+			Start-Sleep 1
+		}
+		Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) now                                "
     
 		$cSource = @'
 using System;
