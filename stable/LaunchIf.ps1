@@ -1,24 +1,9 @@
 #   Description: Script for launching a program/command only if certain
 #   	conditions are met and optionally focusing(by simulating a mouseclick)
 #  Author: makeway4pK
-
+[CmdletBinding(PositionalBinding = $false)]
 param(
-	[string] $Launch					#command to launch
-	
-	, [switch] $Online
-	, [switch] $Gamepad
-	, [switch] $Charging
-	, [switch] $Admin
-	
-	, [switch] $NotOnline
-	, [switch] $NotGamepad
-	, [switch] $NotCharging
-	, [switch] $NotAdmin
-	
-	, [string[]]$Focus = @('', 0, 0)	#array <processname,X,Y> click once at
-	#  X,Y after waiting for <processname>
-	#  to launch; (1560,880) is bottom right
-	, [uint16] $FocusDelay = 20 #delay focus click after detecting the process.
+    [Parameter(ValueFromRemainingArguments = $true)]
     [string] $Launch    #command to launch
     
     , [switch] $Online
@@ -174,6 +159,6 @@ public static void LeftClickAtPoint(int x, int y)
 '@
         Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms, System.Drawing
         #Send a click at a specified point
-        [Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
+        [Clicker]::LeftClickAtPoint([int]$Focus[1], [int]$Focus[2])
     }
 }
