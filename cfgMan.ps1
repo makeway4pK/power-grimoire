@@ -277,7 +277,12 @@ Class cfgInfo {
 		if (!$this.Ready) { return }
 		$boxRoll = &($this.Box.path)
 		foreach ($var in $boxRoll.Keys) {
-			Set-Variable -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
+			if ($boxRoll[$var] -is [Array]) {
+				Set-Variable -Scope Script -Name $var -Value $this.EvalArr($boxRoll[$var])
+			}
+			else {
+				Set-Variable -Scope Script -Name $var -Value $boxRoll[$var]
+			}
 		}
 	}
 	[string[]] EvalArr([string[]]$arr) {
