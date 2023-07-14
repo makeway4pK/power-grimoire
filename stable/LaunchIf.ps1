@@ -27,30 +27,29 @@ param(
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
 
-if (!$Launch) { exit }
 $ok = $true
 
 if ($Admin -or $NotAdmin) {
-	if ($Admin -and $NotAdmin) { exit }
+	if ($Admin -and $NotAdmin) { return $false }
 	if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
 				[Security.Principal.WindowsBuiltInRole] "Administrator")) {	$ok = $false }
 	if ($NotAdmin) { $ok -= 1 }
-	if (!$ok) { exit }
+	if (!$ok) { return $false }
 	# cancel if any condition not met
 }
 
 if ($Charging -or $NotCharging) {
-	if ($Charging -and $NotCharging) { exit }
+	if ($Charging -and $NotCharging) { return $false }
 	if (!(Get-WmiObject -class BatteryStatus -Namespace root\wmi).PowerOnline) {
 		$ok = $false
 	}
 	if ($NotCharging) { $ok -= 1 }
-	if (!$ok) { exit }
+	if (!$ok) { return $false }
 	# cancel if any condition not met
 }
 
 if ($Online -or $NotOnline) {
-	if ($Online -and $NotOnline) { exit }
+	if ($Online -and $NotOnline) { return $false }
 	$ok = $false
 	$networks = netsh wlan show interfaces
 	foreach ($ID in $wifi_ids) {
@@ -60,13 +59,13 @@ if ($Online -or $NotOnline) {
 		}
 	}
 	if ($NotOnline) { $ok -= 1 }
-	if (!$ok) { exit }
+	if (!$ok) { return $false }
 	# cancel if any condition not met
 }
 
 # gamepad if 'game' or 'controller' found in any of Human Interface Devices' names
 if ($Gamepad -or $NotGamepad) {
-	if ($Gamepad -and $NotGamepad) { exit }
+	if ($Gamepad -and $NotGamepad) { return $false }
 	$ok = $false
 	$HIDs = Get-PnpDevice -PresentOnly -Class "HIDClass"
 	foreach ($device in $HIDs) {                           
@@ -76,20 +75,20 @@ if ($Gamepad -or $NotGamepad) {
 		}
 	}
 	if ($NotGamepad) { $ok -= 1 }
-	if (!$ok) { exit }
+	if (!$ok) { return $false }
 	# cancel if any condition not met
 }
 
 
 
 #launch if all chosen conditions met
-if ($ok) {
+if ($ok -and $Launch) {
 	&$Launch $ArgStr
-	if (!$?) { exit }
+	if (!$?) { return $false }
     
 	if ($Focus) {
 		Write-Host "Waiting for process named: $Focus" -NoNewline
-		While (!(Get-Process | ? Name -match $Focus)) {
+		While (!(Get-Process | Where-Object Name -match $Focus)) {
 			Write-Host '.' -NoNewline
 			# Increase wait time to accomodate for initialization (trial-error)
 			Start-Sleep 1
@@ -171,3 +170,4 @@ public static void LeftClickAtPoint(int x, int y)
 		[Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
 	}
 }
+return $true
