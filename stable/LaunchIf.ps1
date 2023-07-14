@@ -83,7 +83,7 @@ if ($Gamepad -or $NotGamepad) {
 
 #launch if all chosen conditions met
 if ($ok) {
-	&$Launch $($MyInvocation.UnboundArguments -join ' ')
+    iex ($Launch)
     if (!$?) { exit }
     
     if ($Focus) {
