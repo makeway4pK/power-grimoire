@@ -21,12 +21,12 @@ param(
 	# bring it to focus after $FocusDelay seconds
 	, [string] $Focus
 	, [uint16] $FocusDelay = 0
-	
+
 	# Left-Click at $ClickAt
 	# after $ClickDelay seconds
 	# (1560,880) is bottom right
 	, [int []] $ClickAt
-	, [uint16] $ClickDelay = 10        
+	, [uint16] $ClickDelay = 10
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
@@ -72,7 +72,7 @@ if ($Gamepad -or $NotGamepad) {
 	if ($Gamepad -and $NotGamepad) { return $false }
 	$ok = $false
 	$HIDs = Get-PnpDevice -PresentOnly -Class "HIDClass"
-	foreach ($device in $HIDs) {                           
+	foreach ($device in $HIDs) {
 		if (($device.name -imatch [regex]::Escape("game")) -or ($device.name -imatch [regex]::Escape("controller"))) {
 			$ok = $true
 			break
@@ -93,37 +93,41 @@ if ($ok -and $Launch) {
 
 	if ($Focus) {
 		$Focus -replace '\.exe$'
-		Write-Host "Waiting for a new window from a process named $Focus " -NoNewline
+		Write-Host -NoNewline "Waiting for a new window from a process named $Focus "
+		Start-Sleep -Milliseconds 160 # avoids loop for quick windows
 		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
 				).where({ $_.MainWindowTitle }
 				).where({ $preHandles -notcontains $_.MainWindowHandle }, 'First'
 				).MainWindowHandle)) {
-			Write-Host '.' -NoNewline
+			Write-Host -NoNewline '.'
 			Start-Sleep 1
 		}
 		''
 		$FocusDelay++
 		while (--$FocusDelay) {
-			Write-Host "`rWindow found, bringing it to top in $FocusDelay seconds     " -NoNewline
+			Write-Host -NoNewline "`rWindow found, it'll be at the front in $FocusDelay seconds     "
 			Start-Sleep 1
 		}
-		Write-Host "`rWindow found, bringing it to top now                                "
+		Write-Host -NoNewline "`rWindow found, "
 		$wh = ./stable/addtype-WindowHandler.ps1
 		if ($wh::IsWindow($new_handle)) {
 			if ($new_handle -ne $wh::GetForegroundWindow()) {
+				"bringing it forward now                               "
 				$wh::ShowWindow($new_handle, 7) -and
 				$wh::ShowWindow($new_handle, 9) | Out-Null
-				Write-Host -NoNewline "GetForegroundWindow() -eq New $Focus Window : "
-				$new_handle -eq $wh::GetForegroundWindow()
+				if ($new_handle -eq $wh::GetForegroundWindow()) {
+					"Window is at front"
+				}
+				else { "Couldn't bring window forward" }
 			}
-			else { "Window was already on top" }
+			else { "already on top                              " }
 		}
-		else { "Window was closed" }
+		else { "`rWindow was closed                              " }
 
 		if ($ClickAt) {
 			$ClickDelay++
 			while (--$ClickDelay) {
-				Write-Host "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     " -NoNewline
+				Write-Host -NoNewline "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     "
 				Start-Sleep 1
 			}
 			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
