@@ -26,7 +26,7 @@ param(
 	# after $ClickDelay seconds
 	# (1560,880) is bottom right
 	, [int []] $ClickAt
-	, [uint16] $ClickDelay = 10
+	, [uint16] $ClickDelay = 2
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
@@ -131,9 +131,9 @@ if ($ok -and $Launch) {
 				Start-Sleep 1
 			}
 			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
-			$clicker = ./stable/addtype-Clicker.ps1
+			./stable/addtype-Clicker.ps1
 			#Send a click at a specified point
-			$clicker::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
+			[Grim.Clicker]::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
 		}
 	}
 }
