@@ -1,7 +1,7 @@
 # Basic Left-click function under class Clicker
 #     void [Clicker]::LeftClickAtPoint(int x, int y);
 
-Add-Type -PassThru -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @'
+Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @'
     using System;
     using System.Drawing;
     using System.Runtime.InteropServices;
