@@ -20,7 +20,7 @@ param(
 	# When a process named $Focus appears,
 	# bring it to focus after $FocusDelay seconds
 	, [string] $Focus
-	, [uint16] $FocusDelay = 1
+	, [uint16] $FocusDelay = 0
 	
 	# Left-Click at $ClickAt
 	# after $ClickDelay seconds
@@ -87,12 +87,12 @@ if ($Gamepad -or $NotGamepad) {
 
 #launch if all chosen conditions met
 if ($ok -and $Launch) {
-	$preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle
+	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
 	&$Launch $ArgStr
 	if (!$?) { return $false }
 
 	if ($Focus) {
-		
+		$Focus -replace '\.exe$'
 		Write-Host "Waiting for a new window from a process named $Focus " -NoNewline
 		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
 				).where({ $_.MainWindowTitle }
@@ -127,9 +127,9 @@ if ($ok -and $Launch) {
 				Start-Sleep 1
 			}
 			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
-			./stable/addtype-Clicker.ps1
+			$clicker = ./stable/addtype-Clicker.ps1
 			#Send a click at a specified point
-			[Grim.Clicker]::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
+			$clicker::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
 		}
 	}
 }
