@@ -4,11 +4,14 @@
 #     SetForegroundWindow (IntPtr WindowHandle)
 #         Gives focus to this window
 #         (doesn't change show state, so no restore if minimized)
+#     #####  DOESN'T SEEM TO WORK AT ALL, minimized or otherwise
 #
 #     ShowWindow (IntPtr WindowHandle, int setShowState)
-#         Sets window's Show state
-#             setStatusCodes:     0       3         6           9
-#             Window Status:      Hide    Maximize  Minimize    Restore
+#         Sets window's Show state.
+#         But from my testing, Only transitions from Minimized to Restored/Maximized
+#         will bring the Window to top-level, without any need for SetForegroundWindow()
+#             Codes:    0       3           2,6,7,11    1,10        9
+#             States:   Hidden  Maximized   Minimized   Restored    As-is(Maximized or Restored)
 #         for more, See
 # https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow#parameters
 #
@@ -28,7 +31,7 @@
 #     (Get-Process)[0].MainWindowHandle
 #
 
-Add-Type -PassThru -Namespace Grim -Name HandleWindow -MemberDefinition @'
+Add-Type -PassThru -Namespace Grim -Name WindowHandler -MemberDefinition @'
     [DllImport("user32.dll", SetLastError=true)]
     public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", SetLastError=true)]

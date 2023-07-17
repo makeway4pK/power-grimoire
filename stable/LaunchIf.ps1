@@ -87,35 +87,38 @@ if ($Gamepad -or $NotGamepad) {
 
 #launch if all chosen conditions met
 if ($ok -and $Launch) {
+	$preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle
 	&$Launch $ArgStr
 	if (!$?) { return $false }
 
 	if ($Focus) {
-		Write-Host "Waiting for process named $Focus " -NoNewline
-		While (!($window_handle = (Get-Process -ErrorAction Ignore $Focus).where({ $_.MainWindowTitle }, 'First').MainWindowHandle)) {
+		
+		Write-Host "Waiting for a new window from a process named $Focus " -NoNewline
+		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
+				).where({ $_.MainWindowTitle }
+				).where({ $preHandles -notcontains $_.MainWindowHandle }, 'First'
+				).MainWindowHandle)) {
 			Write-Host '.' -NoNewline
-			# Increase wait time to accomodate for initialization (trial-error)
 			Start-Sleep 1
 		}
 		''
 		$FocusDelay++
 		while (--$FocusDelay) {
-			Write-Host "`rWindow found, bringing it to focus in $FocusDelay seconds     " -NoNewline
+			Write-Host "`rWindow found, bringing it to top in $FocusDelay seconds     " -NoNewline
 			Start-Sleep 1
 		}
-		Write-Host "`rWindow found, bringing it to focus now                                "
-		./stable/addtype-WindowShow.ps1
-		if ([Grim.HandleWindow]::IsWindow($window_handle)) {
-			if ([Grim.HandleWindow]::IsIconic($window_handle)) {
-				Write-Host 'ShoWin() returned ' -NoNewline
-				[Grim.HandleWindow]::ShowWindow($window_handle, 1)
+		Write-Host "`rWindow found, bringing it to top now                                "
+		$wh = ./stable/addtype-WindowHandler.ps1
+		if ($wh::IsWindow($new_handle)) {
+			if ($new_handle -ne $wh::GetForegroundWindow()) {
+				$wh::ShowWindow($new_handle, 7) -and
+				$wh::ShowWindow($new_handle, 9) | Out-Null
+				Write-Host -NoNewline "GetForegroundWindow() -eq New $Focus Window : "
+				$new_handle -eq $wh::GetForegroundWindow()
 			}
-			if ($window_handle -ne [Grim.HandleWindow]::GetForegroundWindow()) {
-				Write-Host 'SetFgW() returned ' -NoNewline
-				[Grim.HandleWindow]::SetForegroundWindow($window_handle)
-			} 
+			else { "Window was already on top" }
 		}
-		else { 'Window was closed' }
+		else { "Window was closed" }
 
 		if ($ClickAt) {
 			$ClickDelay++
