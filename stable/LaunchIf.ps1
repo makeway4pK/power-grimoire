@@ -87,11 +87,29 @@ if ($ok -and $Launch) {
 	if (!$?) { return $false }
     
 	if ($Focus) {
-		Write-Host "Waiting for process named: $Focus" -NoNewline
-		While (!(Get-Process | Where-Object Name -match $Focus)) {
+		Write-Host "Waiting for process named $Focus " -NoNewline
+		While (!($window_handle = (Get-Process -ErrorAction Ignore $Focus).where({ $_.MainWindowTitle }, 'First').MainWindowHandle)) {
 			Write-Host '.' -NoNewline
 			# Increase wait time to accomodate for initialization (trial-error)
 			Start-Sleep 1
+		}
+		''
+		
+		./stable/addtype-WindowShow.ps1
+		if ([Grim.HandleWindow]::IsIconic($window_handle)) {
+			Write-Host 'ShoWin() returned ' -NoNewline
+			[Grim.HandleWindow]::ShowWindow($window_handle, 1)
+			# ''
+		}
+		'asd'
+		[Grim.HandleWindow]::GetForegroundWindow()
+		'asd'
+		# sleep 2
+		if ($window_handle -ne [Grim.HandleWindow]::GetForegroundWindow()) {
+			Write-Host 'SetFgW() returned ' -NoNewline
+			[Grim.HandleWindow]::SetForegroundWindow($window_handle)
+			# Read-Host
+			# ''
 		}
 		''
 		$FocusDelay++
@@ -102,7 +120,7 @@ if ($ok -and $Launch) {
 		Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) now                                "
 		./stable/addtype-Clicker.ps1
 		#Send a click at a specified point
-		[Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
+		[Grim.Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
 	}
 }
 return $true
