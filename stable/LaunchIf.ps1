@@ -26,7 +26,7 @@ param(
 	# after $ClickDelay seconds
 	# (1560,880) is bottom right
 	, [int []] $ClickAt
-	, [uint16] $ClickDelay = 2
+	, [uint16] $ClickDelay = 0
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
