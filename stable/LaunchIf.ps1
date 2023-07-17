@@ -6,23 +6,27 @@ param(
 	[Parameter(ValueFromRemainingArguments = $true)]
 	[string] $Launch    #command to launch
 	, [string[]] $ArgStr
-    
+
 	, [switch] $Online
 	, [switch] $Gamepad
 	, [switch] $Charging
 	, [switch] $Admin
-    
+
 	, [switch] $NotOnline
 	, [switch] $NotGamepad
 	, [switch] $NotCharging
 	, [switch] $NotAdmin
-    
-	# When a process named $Focus appears, click at $FocusAt
-	# after $FocusDelay seconds
-	# (1560,880) is bottom right
+
+	# When a process named $Focus appears,
+	# bring it to focus after $FocusDelay seconds
 	, [string] $Focus
-	, [int []] $FocusAt = @(780, 440)
-	, [uint16] $FocusDelay = 10        
+	, [uint16] $FocusDelay = 1
+	
+	# Left-Click at $ClickAt
+	# after $ClickDelay seconds
+	# (1560,880) is bottom right
+	, [int []] $ClickAt
+	, [uint16] $ClickDelay = 10        
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
@@ -85,7 +89,7 @@ if ($Gamepad -or $NotGamepad) {
 if ($ok -and $Launch) {
 	&$Launch $ArgStr
 	if (!$?) { return $false }
-    
+
 	if ($Focus) {
 		Write-Host "Waiting for process named $Focus " -NoNewline
 		While (!($window_handle = (Get-Process -ErrorAction Ignore $Focus).where({ $_.MainWindowTitle }, 'First').MainWindowHandle)) {
@@ -94,33 +98,36 @@ if ($ok -and $Launch) {
 			Start-Sleep 1
 		}
 		''
-		
-		./stable/addtype-WindowShow.ps1
-		if ([Grim.HandleWindow]::IsIconic($window_handle)) {
-			Write-Host 'ShoWin() returned ' -NoNewline
-			[Grim.HandleWindow]::ShowWindow($window_handle, 1)
-			# ''
-		}
-		'asd'
-		[Grim.HandleWindow]::GetForegroundWindow()
-		'asd'
-		# sleep 2
-		if ($window_handle -ne [Grim.HandleWindow]::GetForegroundWindow()) {
-			Write-Host 'SetFgW() returned ' -NoNewline
-			[Grim.HandleWindow]::SetForegroundWindow($window_handle)
-			# Read-Host
-			# ''
-		}
-		''
 		$FocusDelay++
 		while (--$FocusDelay) {
-			Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) in $FocusDelay seconds     " -NoNewline
+			Write-Host "`rWindow found, bringing it to focus in $FocusDelay seconds     " -NoNewline
 			Start-Sleep 1
 		}
-		Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) now                                "
-		./stable/addtype-Clicker.ps1
-		#Send a click at a specified point
-		[Grim.Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
+		Write-Host "`rWindow found, bringing it to focus now                                "
+		./stable/addtype-WindowShow.ps1
+		if ([Grim.HandleWindow]::IsWindow($window_handle)) {
+			if ([Grim.HandleWindow]::IsIconic($window_handle)) {
+				Write-Host 'ShoWin() returned ' -NoNewline
+				[Grim.HandleWindow]::ShowWindow($window_handle, 1)
+			}
+			if ($window_handle -ne [Grim.HandleWindow]::GetForegroundWindow()) {
+				Write-Host 'SetFgW() returned ' -NoNewline
+				[Grim.HandleWindow]::SetForegroundWindow($window_handle)
+			} 
+		}
+		else { 'Window was closed' }
+
+		if ($ClickAt) {
+			$ClickDelay++
+			while (--$ClickDelay) {
+				Write-Host "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     " -NoNewline
+				Start-Sleep 1
+			}
+			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
+			./stable/addtype-Clicker.ps1
+			#Send a click at a specified point
+			[Grim.Clicker]::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
+		}
 	}
 }
 return $true
