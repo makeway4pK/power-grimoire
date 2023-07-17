@@ -28,7 +28,7 @@
 #     (Get-Process)[0].MainWindowHandle
 #
 
-Add-Type -Namespace Grim -Name HandleWindow -MemberDefinition @'
+Add-Type -PassThru -Namespace Grim -Name HandleWindow -MemberDefinition @'
     [DllImport("user32.dll", SetLastError=true)]
     public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", SetLastError=true)]
