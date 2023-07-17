@@ -6,23 +6,27 @@ param(
 	[Parameter(ValueFromRemainingArguments = $true)]
 	[string] $Launch    #command to launch
 	, [string[]] $ArgStr
-    
+
 	, [switch] $Online
 	, [switch] $Gamepad
 	, [switch] $Charging
 	, [switch] $Admin
-    
+
 	, [switch] $NotOnline
 	, [switch] $NotGamepad
 	, [switch] $NotCharging
 	, [switch] $NotAdmin
-    
-	# When a process named $Focus appears, click at $FocusAt
-	# after $FocusDelay seconds
-	# (1560,880) is bottom right
+
+	# When a process named $Focus appears,
+	# bring it to focus after $FocusDelay seconds
 	, [string] $Focus
-	, [int []] $FocusAt = @(780, 440)
-	, [uint16] $FocusDelay = 10        
+	, [uint16] $FocusDelay = 0
+
+	# Left-Click at $ClickAt
+	# after $ClickDelay seconds
+	# (1560,880) is bottom right
+	, [int []] $ClickAt
+	, [uint16] $ClickDelay = 0
 )
 # online if connected to any of the following networks
 . ./cfgMan.ps1 -get 'wifi_IDs'
@@ -68,7 +72,7 @@ if ($Gamepad -or $NotGamepad) {
 	if ($Gamepad -and $NotGamepad) { return $false }
 	$ok = $false
 	$HIDs = Get-PnpDevice -PresentOnly -Class "HIDClass"
-	foreach ($device in $HIDs) {                           
+	foreach ($device in $HIDs) {
 		if (($device.name -imatch [regex]::Escape("game")) -or ($device.name -imatch [regex]::Escape("controller"))) {
 			$ok = $true
 			break
@@ -83,91 +87,54 @@ if ($Gamepad -or $NotGamepad) {
 
 #launch if all chosen conditions met
 if ($ok -and $Launch) {
+	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
 	&$Launch $ArgStr
 	if (!$?) { return $false }
-    
+
 	if ($Focus) {
-		Write-Host "Waiting for process named: $Focus" -NoNewline
-		While (!(Get-Process | Where-Object Name -match $Focus)) {
-			Write-Host '.' -NoNewline
-			# Increase wait time to accomodate for initialization (trial-error)
+		$Focus -replace '\.exe$'
+		Write-Host -NoNewline "Waiting for a new window from a process named $Focus "
+		Start-Sleep -Milliseconds 160 # avoids loop for quick windows
+		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
+				).where({ $_.MainWindowTitle }
+				).where({ $preHandles -notcontains $_.MainWindowHandle }, 'First'
+				).MainWindowHandle)) {
+			Write-Host -NoNewline '.'
 			Start-Sleep 1
 		}
 		''
 		$FocusDelay++
 		while (--$FocusDelay) {
-			Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) in $FocusDelay seconds     " -NoNewline
+			Write-Host -NoNewline "`rWindow found, it'll be at the front in $FocusDelay seconds     "
 			Start-Sleep 1
 		}
-		Write-Host "`rClicking at $($FocusAt[0]),$($FocusAt[1]) now                                "
-    
-		$cSource = @'
-using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-public class Clicker
-{
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct INPUT
-{ 
-    public int        type; // 0 = INPUT_MOUSE,
-                            // 1 = INPUT_KEYBOARD
-                            // 2 = INPUT_HARDWARE
-    public MOUSEINPUT mi;
-}
+		Write-Host -NoNewline "`rWindow found, "
+		$wh = ./stable/addtype-WindowHandler.ps1
+		if ($wh::IsWindow($new_handle)) {
+			if ($new_handle -ne $wh::GetForegroundWindow()) {
+				"bringing it forward now                               "
+				$wh::ShowWindow($new_handle, 7) -and
+				$wh::ShowWindow($new_handle, 9) | Out-Null
+				if ($new_handle -eq $wh::GetForegroundWindow()) {
+					"Window brought to front"
+				}
+				else { "Couldn't bring window forward" }
+			}
+			else { "already on top                              " }
+		}
+		else { "`rWindow was closed                              " }
 
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct MOUSEINPUT
-{
-    public int    dx ;
-    public int    dy ;
-    public int    mouseData ;
-    public int    dwFlags;
-    public int    time;
-    public IntPtr dwExtraInfo;
-}
-
-//This covers most use cases although complex mice may have additional buttons
-//There are additional constants you can use for those cases, see the msdn page
-const int MOUSEEVENTF_MOVED      = 0x0001 ;
-const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
-const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
-const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
-const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
-const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
-const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
-const int MOUSEEVENTF_WHEEL      = 0x0080 ;
-const int MOUSEEVENTF_XDOWN      = 0x0100 ;
-const int MOUSEEVENTF_XUP        = 0x0200 ;
-const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
-
-const int screen_length = 0x10000 ;
-
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
-[System.Runtime.InteropServices.DllImport("user32.dll")]
-extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-public static void LeftClickAtPoint(int x, int y)
-{
-    //Move the mouse
-    INPUT[] input = new INPUT[3];
-    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
-    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
-    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
-    //Left mouse button down
-    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    //Left mouse button up
-    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(3, input, Marshal.SizeOf(input[0]));
-}
-}
-'@
-		Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms, System.Drawing
-		#Send a click at a specified point
-		[Clicker]::LeftClickAtPoint($FocusAt[0], $FocusAt[1])
+		if ($ClickAt) {
+			$ClickDelay++
+			while (--$ClickDelay) {
+				Write-Host -NoNewline "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     "
+				Start-Sleep 1
+			}
+			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
+			./stable/addtype-Clicker.ps1
+			#Send a click at a specified point
+			[Grim.Clicker]::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
+		}
 	}
 }
 return $true
