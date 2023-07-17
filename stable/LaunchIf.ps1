@@ -116,7 +116,7 @@ if ($ok -and $Launch) {
 				$wh::ShowWindow($new_handle, 7) -and
 				$wh::ShowWindow($new_handle, 9) | Out-Null
 				if ($new_handle -eq $wh::GetForegroundWindow()) {
-					"Window is at front"
+					"Window brought to front"
 				}
 				else { "Couldn't bring window forward" }
 			}
