@@ -19,6 +19,7 @@ while (./stable/LaunchIf.ps1 -NotOnline) {
 
 # Monitor connection and process while pinging btn
 # (Don't know how to monitor network traffic yet)
+./stable/addtype-Clicker.ps1
 while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $process)) {
     Start-Sleep $ListenerDelay
     [Grim.Clicker]::LeftClickAtPoint($DownloadBtn[0], $DownloadBtn[1])
