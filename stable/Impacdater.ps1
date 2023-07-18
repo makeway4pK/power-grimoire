@@ -21,8 +21,8 @@ while (./stable/LaunchIf.ps1 -NotOnline) {
 # (Don't know how to monitor network traffic yet)
 ./stable/addtype-Clicker.ps1
 while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $process)) {
-    Start-Sleep $ListenerDelay
     [Grim.Clicker]::LeftClickAtPoint($DownloadBtn[0], $DownloadBtn[1])
+    Start-Sleep $ListenerDelay
 }
 
 # Initiate shutdown only if $process is still up,
