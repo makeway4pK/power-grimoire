@@ -1,4 +1,4 @@
-(measure-command{C:\SDK\Android\tools\bin\monkeyrunner.bat 'C:\Users\makeway4pK\OneDrive\Documents\Scripts\test-area\monkey-test.py'}).TotalMilliseconds
+# (measure-command{C:\SDK\Android\tools\bin\monkeyrunner.bat "'$pwd\test-area\monkey-test.py'"}).TotalMilliseconds
 from com.android.monkeyrunner import MonkeyRunner, MonkeyDevice
 device = MonkeyRunner.waitForConnection()
 
