@@ -8,6 +8,12 @@
 
 #!markdown
 
+- [ ]  Get-counter for performance and network traffic stats...
+	- can detect download starts
+	- maybe detect idles
+
+#!markdown
+
 - [ ] plotter?
 
 #!markdown
