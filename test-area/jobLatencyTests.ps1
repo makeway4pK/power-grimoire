@@ -1,7 +1,7 @@
 $logfile = './logs/temp.log'
 
 $moment = Get-Date
-"`n[[[[" + $moment.tostring() + "]]]]">>$logfile
+"`n[[[[" + $moment.tostring() + "]]]]" | Add-Content$logfile
 $moment = $moment.ToFileTime()
 function LogThis {
 	param(
@@ -9,10 +9,10 @@ function LogThis {
 		$txt
 	)
 	begin {}
-	process { $txt>>$logfile }
+	process { $txt | Add-Content$logfile }
 	end {
 		$stamp = Get-Date
-		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms">>$logfile
+		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms" | Add-Content$logfile
 	}
 }
 $d = -1

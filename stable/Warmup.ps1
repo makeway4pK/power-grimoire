@@ -24,7 +24,7 @@ $varList = @(
 . ./cfgMan.ps1 -get $varList
 
 $moment = Get-Date
-"`n[[[[" + $moment.tostring() + "]]]]">>$warmup_logFile
+"`n[[[[" + $moment.tostring() + "]]]]" | Add-Content $warmup_logFile
 $moment = $moment.ToFileTime()
 function LogThis {
 	param(
@@ -32,10 +32,10 @@ function LogThis {
 		$txt
 	)
 	begin {}
-	process { $txt>>$warmup_logFile }
+	process { $txt | Add-Content $warmup_logFile }
 	end {
 		$stamp = Get-Date
-		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms">>$warmup_logFile
+		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms" | Add-Content $warmup_logFile
 	}
 }
 function NogThis {
@@ -45,9 +45,9 @@ function NogThis {
 	)
 	begin {
 		$stamp = Get-Date
-		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms">>$warmup_logFile
+		"   [" + $stamp.ToLongTimeString() + "] +" + [Int]( - ($moment - ($script:moment = $stamp.ToFileTime())) / 10000) + "ms" | Add-Content $warmup_logFile
 	}
-	process { $txt>>$warmup_logFile }
+	process { $txt | Add-Content $warmup_logFile }
 	end {}
 }
 
@@ -72,7 +72,7 @@ function Push-Cuts {
 	$cuts.GetEnumerator() | ForEach-Object {
 		$pushStr += $_.key.padRight($maxLen, ' ') + ' : ' + $_.value
 	}
-	$pushStr -join "`n"> $warmup_pushFile
+	$pushStr -join "`n" | Set-Content $warmup_pushFile
 	
 	foreach ($sn in $sns) {
 		$sn = -split $sn

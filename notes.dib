@@ -31,10 +31,6 @@
 
 #!markdown
 
-- [ ] use set-content and add-content
-
-#!markdown
-
 - [ ] use `adb shell cmd notification post -t`
 
 #!markdown
@@ -75,6 +71,10 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] use set-content and add-content
 
 #!markdown
 

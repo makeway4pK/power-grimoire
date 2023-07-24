@@ -11,7 +11,7 @@ function Set-ClipFile {
 		$clip
 	)
 	
-	$clip > $clipFile
+	$clip | Set-Content $clipFile
 	adb push $clipFile $clipmate_adbFile
 }
 function Set-Clip {
