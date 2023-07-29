@@ -9,7 +9,7 @@
 #     ShowWindow (IntPtr WindowHandle, int setShowState)
 #         Sets window's Show state.
 #         But from my testing, Only transitions from Minimized to Restored/Maximized
-#         will bring the Window to top-level, without any need for SetForegroundWindow()
+#         will bring the Window to top-level, without any need (or use) of SetForegroundWindow()
 #             Codes:    0       3           2,6,7,11    1,10        9
 #             States:   Hidden  Maximized   Minimized   Restored    As-is(Maximized or Restored)
 #         for more, See
