@@ -1,9 +1,7 @@
 param(
 	[string] $match_name
 )
-./cfgMan.ps1 -get steam_path
-$max_wait = 10
-$steam_path
+. ./cfgMan.ps1 -get steam_path
 # if (!$match_name) { exit }
 
 #Check if Steam is already running launch and minimize if not running
