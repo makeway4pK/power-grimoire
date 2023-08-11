@@ -5,16 +5,16 @@ param(
 . ./cfgMan.ps1 -get steam_path
 $proc_wait = 20
 $max_wait = 600
-$win_wait = 2
+$win_wait = 5
 $toHide_WinsCount = 2
 
 
-$steam_path += "/steam.exe"
+if (!$steam_path) { exit }
 $proc_name = 'steamwebhelper'
 # if (!$match_name) { exit }
 
 function Launch-Steam-Minimized {
-	Start-Process $steam_path
+	Start-Process ($steam_path + "/steam.exe")
 	if (!$?) { return $false } # if launch failed
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
@@ -37,15 +37,16 @@ function Launch-Steam-Minimized {
 		# Hide window, needs admin
 		"Window found: " + $(
 			if ($wh::ShowWindow($hnd, 0)) { $toHide_WinsCount-- | Out-Null; 'True' }
-			else { 'False' } ) | Write-Verbose
+			else { 'No' } ) | Write-Verbose
 	}
 	return $true
 }
 
 # if not running, launch and minimize Steam
 if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
-	if (!Launch-Steam-Minimized) {
+	if (-not (Launch-Steam-Minimized) ) {
 		'Launch failed' | Write-Verbose
 		exit
 	}
 } # Steam must be running if control is here
+
