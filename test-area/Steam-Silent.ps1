@@ -41,6 +41,12 @@ function Launch-Steam-Minimized {
 	}
 	return $true
 }
+function Get-SteamUser {
+	$SteamID3 = reg query HKCU\Software\Valve\Steam\ActiveProcess
+	$SteamID3 = $SteamID3 -match 'ActiveUser' -split ' ' -match '0x'
+	$SteamID3 = [uint32]$SteamID3[0]
+	return $SteamID3
+}
 
 # if not running, launch and minimize Steam
 if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
