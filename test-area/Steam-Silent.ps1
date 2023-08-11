@@ -47,6 +47,17 @@ function Get-SteamUser {
 	$SteamID3 = [uint32]$SteamID3[0]
 	return $SteamID3
 }
+function Get-PairsFrom_ScreenshotsFile($userID) {
+	$pairs = @{}
+	$content = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
+	$pairtxt = $content -split 'shortcutnames.*'
+	$pairtxt = $pairtxt[1] -split "`n" -match '.*".*'
+	$pairtxt = $pairtxt -split '"' | Where-Object Length -gt 2
+	for ($i = 0; $i -lt $pairtxt.Count; $i += 2) {
+		$pairs[$pairtxt[$i + 1]] = $pairtxt[$i] # overwrite
+	}
+	return $pairs
+}
 
 # if not running, launch and minimize Steam
 if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
