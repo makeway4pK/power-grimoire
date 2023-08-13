@@ -77,6 +77,18 @@ function Decode-appID([char[]] $appIDtxt) {
 	}
 	return $appID -bor 1 -shl 25
 }
+function isArrSame([Array]$both) {
+	$A, $B = $both
+	if ($A.count -ne $B.count) { return $false }
+	if (!$A.count) { return $A.GetType() -eq $B.GetType() }
+	for ($i = 0; $i -lt $A.count; $i++) {
+		if ($A[$i] -ne $B[$i]) {
+			"'$($A[$i])' doesn't match '$($B[$i])'" | Write-Verbose
+			return $false
+		}
+	}
+	return $true
+}
 
 function Get-ShortcutPairs-ByteWise($userID) {
 	[int[]]$bytes = Get-Content -Encoding Byte -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
