@@ -47,7 +47,7 @@ function Get-SteamUser {
 	$SteamID3 = [uint32]$SteamID3[0]
 	return $SteamID3
 }
-function Get-PairsFrom_ScreenshotsFile($userID) {
+function Get-appIDs-fromScreenshots.vdf($userID) {
 	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
 	$pairtxt = $pairtxt -split 'shortcutnames.*'
 	$pairtxt = $pairtxt[1] -split "`n" -match '.*".*'
@@ -95,8 +95,7 @@ function isArrSame([Array]$both) {
 	}
 	return $true
 }
-
-function Get-ShortcutPairs-ByteWise($userID) {
+function Get-appIDs-fromShortcuts.vdf($userID) {
 	[int[]]$bytes = Get-Content -Encoding Byte -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 	$id_tag = @(2, 97, 112, 112, 105, 100, 0)
 	$name_tag = @(1, 97, 112, 112, 110, 97, 109, 101, 0)
@@ -144,4 +143,14 @@ if (!(Get-Process -ErrorAction Ignore $proc_name)) {
 	}
 } # Steam must be running if control is here
 
-Get-ShortcutPairs-ByteWise(Get-SteamUser)
+$userID = Get-SteamUser
+$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
+$add = Get-appIDs-fromShortcuts.vdf ($userID)
+foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
+
+# Finally, launch app
+if ($pairs[$match_name]) { Start-Process "steam://rungameid/$($pairs[$match_name])" }
+else {
+	"'$match_name' was not found in these appnames:`n"
+	$pairs
+}
