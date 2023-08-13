@@ -58,22 +58,28 @@ function Get-PairsFrom_ScreenshotsFile($userID) {
 	}
 	return $pairs
 }
-function Get-PairsFrom_ShortcutsFile($userID) {
-	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
-	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
-	$pairtxt | write-verbose
-	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
-	$pairs = @{}
-	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
-		$pairs[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
-		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
-	}
-	return $pairs
-}
+# function Get-PairsFrom_ShortcutsFile($userID) {
+# 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
+# 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
+# 	$pairtxt | write-verbose
+# 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
+# 	$pairs = @{}
+# 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
+# 		$pairs[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
+# 		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
+# 	}
+# 	return $pairs
+# }
 function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
-	foreach ($byte in $appIDtxt.ToCharArray()) {
+	"Decoding: $appIDtxt, counts as $($appIDtxt.Count)" | Write-Verbose
+	if (!($appIDtxt -is [Array])) {
+		$appIDtxt = $appIDtxt.ToCharArray()
+		" split to: $($appIDtxt.count)" 
+	}
+	foreach ($byte in $appIDtxt) {
 		$appID = $appID -shr 8 -bor [uint64]$byte -shl 56
+		"    parsing: $([uint64]$byte)" | Write-Verbose
 	}
 	return $appID -bor 1 -shl 25
 }
@@ -96,35 +102,38 @@ function Get-ShortcutPairs-ByteWise($userID) {
 	$name_tag = @(1, 97, 112, 112, 110, 97, 109, 101, 0)
 	$tail_tag = @(0, 1)
 	$pairs = @{}
-	for ($i = 0; $i -lt $bytes.Count; $i++) {
-		$matchWith = $id_tag
-		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+	for ($next, $i = 1, (1 + $bytes.IndexOf($id_tag[0])); $next -gt 0; 
+		$i += 2 + ($next = $bytes[($i + 1)..($bytes.Count - 1)].IndexOf($id_tag[0]))) {
+		$matchWith = $id_tag[1..($id_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			continue
 		}
 		$i += $matchWith.Count
-		$appIDtxt = $bytes[$i..($i + 3)]
-		$i += 4
 		
-		$matchWith = $name_tag
-		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+		$appIDtxt = $bytes[$i..($i + 3)]
+		$i += 5
+		
+		$matchWith = $name_tag[1..($name_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Name tag not found unexpectedly' | Write-Verbose
 			continue
 		}
 		$i += $matchWith.Count
-		$name_end = $bytes[$i..($bytes.Count - 1)].IndexOf($tail_tag[0])
-		$appNametxt = [char[]]$bytes[$i..($name_end - 1)] -join ''
-		$i = $name_end
 		
-		$matchWith = $tail_tag
-		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+		$name_len = $bytes[$i..($bytes.Count - 1)].IndexOf($tail_tag[0])
+		$appNametxt = [char[]]$bytes[$i..($i + $name_len - 1)] -join ''
+		$i += $name_len + 1
+		
+		$matchWith = $tail_tag[1..($tail_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Tail tag not found unexpectedly' | Write-Verbose
 			continue
 		}
 		$i += $matchWith.Count
 		
 		$pairs[$appNametxt] = Decode-appID($appIDtxt)
-		$i = $bytes[$i..($bytes.Count - 1)].IndexOf($id_tag[0])
 	}
+	return $pairs
 }
 
 # if not running, launch and minimize Steam
