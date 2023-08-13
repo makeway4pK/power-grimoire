@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] LaunchIf can't call other scripts, wtf? I made that steam launcher and now this means I need a secondary shortcut anyway. 
+
+#!markdown
+
 - [ ]  Get-counter for performance and network traffic stats...
 	- can detect download starts
 	- maybe detect idles
