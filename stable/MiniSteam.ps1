@@ -1,0 +1,157 @@
+[CmdletBinding(PositionalBinding = $false)]
+param(
+	[Parameter(ValueFromRemainingArguments = $true)]
+	[string] $match_name
+)
+. ./cfgMan.ps1 -get steam_path
+$proc_wait = 20
+$max_wait = 600
+$win_wait = 5
+$toHide_WinsCount = 2
+
+
+if (!$steam_path) { exit }
+$proc_name = 'steamwebhelper'
+# if (!$match_name) { exit }
+
+function Launch-Steam-Minimized {
+	Start-Process ($steam_path + "/steam.exe")
+	if (!$?) { return $false } # if launch failed
+	
+	$wh = ./stable/addtype-WindowHandler.ps1
+	# wait for process and window handle
+	$timeout = $proc_wait * 2
+	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
+				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
+			).MainWindowHandle) -and $timeout--)
+	{ Start-Sleep -Milliseconds 500 }
+	$timeout = $max_wait
+	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
+				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
+			).MainWindowHandle) -and $timeout--)
+	{ Start-Sleep 1 }
+	if ($timeout -le 0) { return $false }
+	# Watch new windows and hide them quickly
+	$timeout = $win_wait * 10
+	while ($timeout-- -and $toHide_WinsCount) {
+		Start-Sleep -Milliseconds 100
+		# Hide window, needs admin
+		"Window found: " + $(
+			if ($wh::ShowWindow($hnd, 0)) { $toHide_WinsCount-- | Out-Null; 'True' }
+			else { 'No' } ) | Write-Verbose
+	}
+	return $true
+}
+function Get-SteamUser {
+	$SteamID3 = reg query HKCU\Software\Valve\Steam\ActiveProcess
+	$SteamID3 = $SteamID3 -match 'ActiveUser' -split ' ' -match '0x'
+	$SteamID3 = [uint32]$SteamID3[0]
+	return $SteamID3
+}
+function Get-appIDs-fromScreenshots.vdf($userID) {
+	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
+	$pairtxt = $pairtxt -split 'shortcutnames.*'
+	$pairtxt = $pairtxt[1] -split "`n" -match '.*".*'
+	$pairtxt = $pairtxt -split '"' | Where-Object Length -gt 2
+	$pairs = @{}
+	for ($i = 0; $i -lt $pairtxt.Count; $i += 2) {
+		$pairs[$pairtxt[$i + 1]] = $pairtxt[$i] # overwrite
+	}
+	return $pairs
+}
+# function Get-PairsFrom_ShortcutsFile($userID) {
+# 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
+# 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
+# 	$pairtxt | write-verbose
+# 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
+# 	$pairs = @{}
+# 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
+# 		$pairs[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
+# 		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
+# 	}
+# 	return $pairs
+# }
+function Decode-appID([char[]] $appIDtxt) {
+	[uint64]$appID = 0
+	"Decoding: $appIDtxt, counts as $($appIDtxt.Count)" | Write-Verbose
+	if (!($appIDtxt -is [Array])) {
+		$appIDtxt = $appIDtxt.ToCharArray()
+		" split to: $($appIDtxt.count)" 
+	}
+	foreach ($byte in $appIDtxt) {
+		$appID = $appID -shr 8 -bor [uint64]$byte -shl 56
+		"    parsing: $([uint64]$byte)" | Write-Verbose
+	}
+	return $appID -bor 1 -shl 25
+}
+function isArrSame([Array]$both) {
+	$A, $B = $both
+	if ($A.count -ne $B.count) { return $false }
+	if (!$A.count) { return $A.GetType() -eq $B.GetType() }
+	for ($i = 0; $i -lt $A.count; $i++) {
+		if ($A[$i] -ne $B[$i]) {
+			"'$($A[$i])' doesn't match '$($B[$i])'" | Write-Verbose
+			return $false
+		}
+	}
+	return $true
+}
+function Get-appIDs-fromShortcuts.vdf($userID) {
+	[int[]]$bytes = Get-Content -Encoding Byte -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
+	$id_tag = @(2, 97, 112, 112, 105, 100, 0)
+	$name_tag = @(1, 97, 112, 112, 110, 97, 109, 101, 0)
+	$tail_tag = @(0, 1)
+	$pairs = @{}
+	for ($next, $i = 1, (1 + $bytes.IndexOf($id_tag[0])); $next -gt 0; 
+		$i += 2 + ($next = $bytes[($i + 1)..($bytes.Count - 1)].IndexOf($id_tag[0]))) {
+		$matchWith = $id_tag[1..($id_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+			continue
+		}
+		$i += $matchWith.Count
+		
+		$appIDtxt = $bytes[$i..($i + 3)]
+		$i += 5
+		
+		$matchWith = $name_tag[1..($name_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+			'Name tag not found unexpectedly' | Write-Verbose
+			continue
+		}
+		$i += $matchWith.Count
+		
+		$name_len = $bytes[$i..($bytes.Count - 1)].IndexOf($tail_tag[0])
+		$appNametxt = [char[]]$bytes[$i..($i + $name_len - 1)] -join ''
+		$i += $name_len + 1
+		
+		$matchWith = $tail_tag[1..($tail_tag.count - 1)]
+		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+			'Tail tag not found unexpectedly' | Write-Verbose
+			continue
+		}
+		$i += $matchWith.Count
+		
+		$pairs[$appNametxt] = Decode-appID($appIDtxt)
+	}
+	return $pairs
+}
+
+# if not running, launch and minimize Steam
+if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
+	if (-not (Launch-Steam-Minimized) ) {
+		'Launch failed' | Write-Verbose
+		exit
+	}
+} # Steam must be running if control is here
+
+$userID = Get-SteamUser
+$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
+$add = Get-appIDs-fromShortcuts.vdf ($userID)
+foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
+
+# Finally, launch app
+if ($pairs[$match_name]) { Start-Process "steam://rungameid/$($pairs[$match_name])" }
+else {
+	"'$match_name' was not found in these appnames:`n"
+	$pairs
+}
