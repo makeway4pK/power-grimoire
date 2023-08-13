@@ -1,5 +1,6 @@
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
+	[Parameter(ValueFromRemainingArguments = $true)]
 	[string] $match_name
 )
 . ./cfgMan.ps1 -get steam_path
