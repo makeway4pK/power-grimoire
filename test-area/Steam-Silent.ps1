@@ -58,17 +58,26 @@ function Get-PairsFrom_ScreenshotsFile($userID) {
 	}
 	return $pairs
 }
-function Get-PairsFrom_ShortcutsFile {
+function Get-PairsFrom_ShortcutsFile($userID) {
 	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
 	$pairs = @{}
 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
-		$pairs[$pairtxt[$i + 1]] = Decode-appID($pairtxt[$i]) # overwrite
+		$pairs[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
+		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
 	}
 	return $pairs
 }
-function Decode-appID([string] $appIDtxt) {}
+function Decode-appID([string] $appIDtxt) {
+	[uint64]$appID = 0
+	foreach ($byte in $appIDtxt.ToCharArray()) {
+		$appID = $appID -shr 8 -bor [uint64]$byte -shl 56
+	}
+	# return 
+	$appID -bor 1 -shl 25
+}
+
 # if not running, launch and minimize Steam
 if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
 	if (-not (Launch-Steam-Minimized) ) {
@@ -77,3 +86,4 @@ if (!(Get-Process -ErrorAction Ignore $proc_name)) {
 	}
 } # Steam must be running if control is here
 
+Get-PairsFrom_ShortcutsFile(Get-SteamUser)
