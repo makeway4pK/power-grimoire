@@ -59,7 +59,7 @@ function Get-PairsFrom_ScreenshotsFile($userID) {
 	return $pairs
 }
 function Get-PairsFrom_ShortcutsFile($userID) {
-	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
+	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
 	$pairs = @{}
@@ -74,8 +74,7 @@ function Decode-appID([string] $appIDtxt) {
 	foreach ($byte in $appIDtxt.ToCharArray()) {
 		$appID = $appID -shr 8 -bor [uint64]$byte -shl 56
 	}
-	# return 
-	$appID -bor 1 -shl 25
+	return $appID -bor 1 -shl 25
 }
 
 # if not running, launch and minimize Steam
