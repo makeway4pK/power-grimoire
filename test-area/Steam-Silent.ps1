@@ -61,6 +61,7 @@ function Get-PairsFrom_ScreenshotsFile($userID) {
 function Get-PairsFrom_ShortcutsFile($userID) {
 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
+	$pairtxt | write-verbose
 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
 	$pairs = @{}
 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
@@ -69,12 +70,49 @@ function Get-PairsFrom_ShortcutsFile($userID) {
 	}
 	return $pairs
 }
-function Decode-appID([string] $appIDtxt) {
+function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
 	foreach ($byte in $appIDtxt.ToCharArray()) {
 		$appID = $appID -shr 8 -bor [uint64]$byte -shl 56
 	}
 	return $appID -bor 1 -shl 25
+}
+
+function Get-ShortcutPairs-ByteWise($userID) {
+	[int[]]$bytes = Get-Content -Encoding Byte -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
+	$id_tag = @(2, 97, 112, 112, 105, 100, 0)
+	$name_tag = @(1, 97, 112, 112, 110, 97, 109, 101, 0)
+	$tail_tag = @(0, 1)
+	$pairs = @{}
+	for ($i = 0; $i -lt $bytes.Count; $i++) {
+		$matchWith = $id_tag
+		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+			continue
+		}
+		$i += $matchWith.Count
+		$appIDtxt = $bytes[$i..($i + 3)]
+		$i += 4
+		
+		$matchWith = $name_tag
+		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+			'Name tag not found unexpectedly' | Write-Verbose
+			continue
+		}
+		$i += $matchWith.Count
+		$name_end = $bytes[$i..($bytes.Count - 1)].IndexOf($tail_tag[0])
+		$appNametxt = [char[]]$bytes[$i..($name_end - 1)] -join ''
+		$i = $name_end
+		
+		$matchWith = $tail_tag
+		if ($bytes[$i..($i + $matchWith.Count)] -ne $matchWith) {
+			'Tail tag not found unexpectedly' | Write-Verbose
+			continue
+		}
+		$i += $matchWith.Count
+		
+		$pairs[$appNametxt] = Decode-appID($appIDtxt)
+		$i = $bytes[$i..($bytes.Count - 1)].IndexOf($id_tag[0])
+	}
 }
 
 # if not running, launch and minimize Steam
@@ -85,4 +123,4 @@ if (!(Get-Process -ErrorAction Ignore $proc_name)) {
 	}
 } # Steam must be running if control is here
 
-Get-PairsFrom_ShortcutsFile(Get-SteamUser)
+Get-ShortcutPairs-ByteWise(Get-SteamUser)
