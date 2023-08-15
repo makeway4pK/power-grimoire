@@ -93,7 +93,7 @@ if ($ok -and $Launch) {
 	if (!$?) { return $false }
 
 	if ($Focus) {
-		$Focus -replace '\.exe$'
+		$Focus = $Focus -replace '\.exe$'
 		Write-Host -NoNewline "Waiting for a new window from a process named $Focus "
 		Start-Sleep -Milliseconds 160 # avoids loop for quick windows
 		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
