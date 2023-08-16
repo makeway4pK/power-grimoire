@@ -3,9 +3,9 @@
 #  Author: makeway4pK
 [CmdletBinding(PositionalBinding = $false)]
 param(
-	[Parameter(ValueFromRemainingArguments = $true)]
-	[string] $Launch    #command to launch
-	, [string[]] $ArgStr
+	
+	[Parameter(Mandatory)][string] $Launch    #command to launch
+	, [Parameter(ValueFromRemainingArguments)][string[]] $ArgStr
 
 	, [switch] $Online
 	, [switch] $Gamepad
@@ -88,11 +88,12 @@ if ($Gamepad -or $NotGamepad) {
 #launch if all chosen conditions met
 if ($ok -and $Launch) {
 	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
+	"Launching '$Launch' with $($ArgStr.Count) arguments: '$($ArgStr-join"', '")'" | Write-Verbose
 	&$Launch $ArgStr
 	if (!$?) { return $false }
 
 	if ($Focus) {
-		$Focus -replace '\.exe$'
+		$Focus = $Focus -replace '\.exe$'
 		Write-Host -NoNewline "Waiting for a new window from a process named $Focus "
 		Start-Sleep -Milliseconds 160 # avoids loop for quick windows
 		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
