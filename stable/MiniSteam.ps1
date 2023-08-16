@@ -1,7 +1,7 @@
 [CmdletBinding(PositionalBinding = $false)]
 param(
 	[Parameter(ValueFromRemainingArguments = $true)]
-	[string] $match_name
+	[string[]] $appnames
 )
 . ./cfgMan.ps1 -get steam_path
 $proc_wait = 20
@@ -12,7 +12,7 @@ $toHide_WinsCount = 2
 
 if (!$steam_path) { exit }
 $proc_name = 'steamwebhelper'
-# if (!$match_name) { exit }
+if (!$appnames) { exit }
 
 function Launch-Steam-Minimized {
 	Start-Process ($steam_path + "/steam.exe")
@@ -149,9 +149,13 @@ $pairs = Get-appIDs-fromScreenshots.vdf ($userID)
 $add = Get-appIDs-fromShortcuts.vdf ($userID)
 foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
 
-# Finally, launch app
-if ($pairs[$match_name]) { Start-Process "steam://rungameid/$($pairs[$match_name])" }
-else {
-	"'$match_name' was not found in these appnames:`n"
+# Finally, launch apps
+$notFound = @()
+foreach ($app in $appnames) {
+	if ($pairs[$app]) { Start-Process "steam://rungameid/$($pairs[$app])" }
+	else { $notFound += $app }
+}
+if ($notFound.count -ne 0) {
+	"'$($notFound-join"', '")' were not found in these appnames:`n"
 	$pairs
 }
