@@ -15,7 +15,7 @@ while (./stable/LaunchIf.ps1 -NotOnline) {
 }
 
 # Launch the updater and press btn after default delay,
-./stable/LaunchIf.ps1 $impact_path -Admin -Online -Charging -Focus $process
+./stable/LaunchIf.ps1 -Launch $impact_path -Admin -Online -Charging -Focus $process
 
 # Monitor connection and process while pinging btn
 # (Don't know how to monitor network traffic yet)
