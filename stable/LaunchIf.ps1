@@ -4,7 +4,7 @@
 [CmdletBinding(PositionalBinding = $false)]
 param(
 	
-	[Parameter(Mandatory)][string] $Launch    #command to launch
+	[string] $Launch    #command to launch
 	, [Parameter(ValueFromRemainingArguments)][string[]] $ArgStr
 
 	, [switch] $Online
