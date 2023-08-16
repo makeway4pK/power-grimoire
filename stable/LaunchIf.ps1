@@ -3,9 +3,9 @@
 #  Author: makeway4pK
 [CmdletBinding(PositionalBinding = $false)]
 param(
-	[Parameter(ValueFromRemainingArguments = $true)]
-	[string] $Launch    #command to launch
-	, [string[]] $ArgStr
+	
+	[Parameter(Mandatory)][string] $Launch    #command to launch
+	, [Parameter(ValueFromRemainingArguments)][string[]] $ArgStr
 
 	, [switch] $Online
 	, [switch] $Gamepad
@@ -89,7 +89,7 @@ if ($Gamepad -or $NotGamepad) {
 if ($ok -and $Launch) {
 	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
 	"Launching '$Launch' with $($ArgStr.Count) arguments: $($ArgStr-join', ')" | Write-Verbose
-	Invoke-Expression "$Launch $ArgStr"
+	&$Launch $ArgStr
 	if (!$?) { return $false }
 
 	if ($Focus) {
