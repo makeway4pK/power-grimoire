@@ -1,5 +1,6 @@
 # Basic Left-click function under class Clicker
 #     void [Clicker]::LeftClickAtPoint(int x, int y);
+# (1560,880) is bottom right
 
 Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @'
     using System;
