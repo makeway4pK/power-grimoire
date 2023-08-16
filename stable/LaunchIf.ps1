@@ -89,7 +89,8 @@ if ($Gamepad -or $NotGamepad) {
 if ($ok -and $Launch) {
 	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
 	"Launching '$Launch' with $($ArgStr.Count) arguments: '$($ArgStr-join"', '")'" | Write-Verbose
-	&$Launch $ArgStr
+	&$Launch @ArgStr
+	# '@' splats the array
 	if (!$?) { return $false }
 
 	if ($Focus) {

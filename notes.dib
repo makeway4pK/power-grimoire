@@ -8,7 +8,7 @@
 
 #!markdown
 
-- [ ] LaunchIf can't call other scripts, wtf? I made that steam launcher and now this means I need a secondary shortcut anyway. 
+- [ ] Look up Splatting in detail
 
 #!markdown
 
@@ -81,6 +81,10 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] LaunchIf can't call other scripts, wtf? I made that steam launcher and now this means I need a secondary shortcut anyway. 
 
 #!markdown
 
