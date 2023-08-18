@@ -19,12 +19,13 @@ while (./stable/LaunchIf.ps1 -NotOnline) {
 # Launch the updater and press btn after default delay,
 ./stable/LaunchIf.ps1 -Launch $impact_path -Admin -Online -Charging -Focus $process
 
+$wh = ./stable/addtype-WindowHandler.ps1
 # Monitor connection and process while pinging btn
 # (Don't know how to monitor network traffic yet)
 ./stable/addtype-Clicker.ps1
 $ClickerTimeout /= $ListenerDelay
-while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $process).where({ $_.mainWindowTitle -eq $title })) {
-    if ($ClickerTimeout) {
+while ((./stable/LaunchIf.ps1 -Online) -and ($hnd = (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }).MainWindowHandle)) {
+    if ($ClickerTimeout -and $wh::GetForegroundWindow() -eq $hnd) {
         [Grim.Clicker]::LeftClickAtPoint($DownloadBtn[0], $DownloadBtn[1])
         $ClickerTimeout--
     }
@@ -34,7 +35,7 @@ while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $pr
 # Initiate shutdown only if $process is still up,
 #  implying exit reason was connection loss
 if ($hnd = (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }).MainWindowHandle) {
-    if ((./stable/addtype-WindowHandler.ps1)::GetForegroundWindow() -eq $hnd) {
+    if ($wh::GetForegroundWindow() -eq $hnd) {
         ./stable/LaunchIf.ps1 shutdown -ArgStr /s, /hybrid, /t, 180, /c, '"Impact', Updater, 'ran,', time, to, 'sleep!"' -NotOnline 
     }
     else {
