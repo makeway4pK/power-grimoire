@@ -1,7 +1,7 @@
 <#
 Created 23:51 18Aug23
 @makeway4pK
-	Simple script to merge current branch to main/master/develop.
+	Simple script to merge --no-ff current branch to main/master/develop.
 	Doesn't commit the merge, only preps it.
 	Ends up on the main branch
 	Avoid using rollback if conflicts occur (behavior not tested)
@@ -10,6 +10,7 @@ $mergeTo_branch = 'main'
 
 if ((git branch --merged $mergeTo_branch) -match '\*') {
 	"This branch has no unmerged changes ahead of '$mergeTo_branch'"
+	exit
 }
 $thisBranch = (git branch) -match '\*' -replace '^\*\s'
 
