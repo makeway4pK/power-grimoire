@@ -5,6 +5,7 @@
 #               but initiates shutsdown when Wifi connection is lost and $process is still up
 . ./cfgMan.ps1 -get 'impact_path'
 $process = 'launcher'
+$title = 'Genshin Impact'
 
 $ListenerDelay = 5
 $ClickerTimeout = 60
@@ -22,7 +23,7 @@ while (./stable/LaunchIf.ps1 -NotOnline) {
 # (Don't know how to monitor network traffic yet)
 ./stable/addtype-Clicker.ps1
 $ClickerTimeout /= $ListenerDelay
-while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $process)) {
+while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $process).where({ $_.mainWindowTitle -eq $title })) {
     if ($ClickerTimeout) {
         [Grim.Clicker]::LeftClickAtPoint($DownloadBtn[0], $DownloadBtn[1])
         $ClickerTimeout--
@@ -32,6 +33,12 @@ while ((./stable/LaunchIf.ps1 -Online) -and (Get-Process -ErrorAction Ignore $pr
 
 # Initiate shutdown only if $process is still up,
 #  implying exit reason was connection loss
-if ((Get-Process -ErrorAction Ignore $process)) {
-    ./stable/LaunchIf.ps1 shutdown -ArgStr /s, /hybrid, /t, 180, /c, '"Impact', Updater, 'ran,', time, to, 'sleep!"' -NotOnline
+if ($hnd = (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }).MainWindowHandle) {
+    if ((./stable/addtype-WindowHandler.ps1)::GetForegroundWindow() -eq $hnd) {
+        ./stable/LaunchIf.ps1 shutdown -ArgStr /s, /hybrid, /t, 180, /c, '"Impact', Updater, 'ran,', time, to, 'sleep!"' -NotOnline 
+    }
+    else {
+        # Don't shutdown if not in foreground
+        (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }) | Stop-Process
+    }
 }
