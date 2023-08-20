@@ -111,7 +111,7 @@ function Connect {
 	if ($jobs | Where-Object -Property 'State' -eq Running) {
 		$ConnectOutput = ($jobs | Wait-Job  -Timeout 1) | Receive-Job
 	}
-	$jobs | Remove-Jobove-Job -Force
+	$jobs | Remove-Job -Force
 	if ([bool]($ConnectOutput -match 'connected to ')) {
 		return $ConnectOutput
 	}
