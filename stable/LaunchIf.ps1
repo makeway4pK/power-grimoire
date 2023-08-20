@@ -89,50 +89,51 @@ if ($Gamepad -or $NotGamepad) {
 if ($ok -and $Launch) {
 	if ($Focus) { $preHandles = (Get-Process -ErrorAction Ignore $Focus).MainWindowHandle }
 	"Launching '$Launch' with $($ArgStr.Count) arguments: '$($ArgStr-join"', '")'" | Write-Verbose
-	&$Launch @ArgStr
+	if ($ArgStr) { &$Launch @ArgStr }
+	else { &$Launch }
 	# '@' splats the array
 	if (!$?) { return $false }
 
 	if ($Focus) {
 		$Focus = $Focus -replace '\.exe$'
-		Write-Host -NoNewline "Waiting for a new window from a process named $Focus "
+		Write-Host -NoNewline "Waiting for a new window from a process named $Focus " | Write-Verbose
 		Start-Sleep -Milliseconds 160 # avoids loop for quick windows
 		While (!($new_handle = (Get-Process -ErrorAction Ignore $Focus
 				).where({ $_.MainWindowTitle }
 				).where({ $preHandles -notcontains $_.MainWindowHandle }, 'First'
 				).MainWindowHandle)) {
-			Write-Host -NoNewline '.'
+			Write-Host -NoNewline '.' | Write-Verbose
 			Start-Sleep 1
 		}
 		''
 		$FocusDelay++
 		while (--$FocusDelay) {
-			Write-Host -NoNewline "`rWindow found, it'll be at the front in $FocusDelay seconds     "
+			Write-Host -NoNewline "`rWindow found, it'll be at the front in $FocusDelay seconds     " | Write-Verbose
 			Start-Sleep 1
 		}
-		Write-Host -NoNewline "`rWindow found, "
+		Write-Host -NoNewline "`rWindow found, " | Write-Verbose
 		$wh = ./stable/addtype-WindowHandler.ps1
 		if ($wh::IsWindow($new_handle)) {
 			if ($new_handle -ne $wh::GetForegroundWindow()) {
-				"bringing it forward now                               "
+				"bringing it forward now                               " | Write-Verbose
 				$wh::ShowWindow($new_handle, 7) -and
 				$wh::ShowWindow($new_handle, 9) | Out-Null
 				if ($new_handle -eq $wh::GetForegroundWindow()) {
-					"Window brought to front"
+					"Window brought to front" | Write-Verbose
 				}
-				else { "Couldn't bring window forward" }
+				else { "Couldn't bring window forward"  | Write-Verbose }
 			}
-			else { "already on top                              " }
+			else { "already on top                              " | Write-Verbose }
 		}
-		else { "`rWindow was closed                              " }
+		else { "`rWindow was closed                              "  | Write-Verbose }
 
 		if ($ClickAt) {
 			$ClickDelay++
 			while (--$ClickDelay) {
-				Write-Host -NoNewline "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     "
+				Write-Host -NoNewline "`rClicking at $($ClickAt -join ',') in $ClickDelay seconds     " | Write-Verbose
 				Start-Sleep 1
 			}
-			Write-Host "`rClicking at $($ClickAt -join ',') now                                "
+			Write-Host "`rClicking at $($ClickAt -join ',') now                                " | Write-Verbose
 			./stable/addtype-Clicker.ps1
 			#Send a click at a specified point
 			[Grim.Clicker]::LeftClickAtPoint($ClickAt[0], $ClickAt[1])
