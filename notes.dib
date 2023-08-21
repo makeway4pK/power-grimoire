@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] use `adb pull -a` and `adb push --sync`
+
+#!markdown
+
 - [ ] Look up Splatting in detail
 
 #!markdown
