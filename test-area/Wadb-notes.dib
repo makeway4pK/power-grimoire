@@ -1,0 +1,41 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+The Problem: Wadb is slow, unreliable and has now-broken features.
+- Slow: takes 8s to 5s to connect
+- unreliable: sometimes the warmup script gets no output, but upon later inspection, the connection had succeded.
+- now-broken features: Since the last time I edited this script, smartphones have got
+	mac-randomization feature to avoid tracking across diff wifi networks. It's a privacy n security feature
+	so, it'll be pervasive soon, no point trying to work around it, tracking devices via mac is better forgotten.
+
+#!markdown
+
+First of all, about the broken feature of remembering devices
+ - It is useful only if devices can be identified between sessions
+ - that will require saving a token(as a file most probably) onto the device
+ - saving a token on the device is a bit invasive
+ - not a useful id for security sensitive usecase
+ - potential uses of this feature:
+	- recognising warmup device
+		can be done by saving the token in the file itself,
+		no need for a token specific to wadb script
+ 	- avoiding stray connection requests
+		saving a file requires an adb connection in the first place
+		and beacuse no network info is trackable spamming adb connections is [inevitable]().
+
+- no proper usecase and problems with clean implementation makes me think I'd rather [let this feature go]()
+> Irrelevant note: iOS devices have a **'bonjour'** thing that let's you know you're talking to an iOS device on the network, apparently requiring minimal authorization
+
+#!markdown
+
+For the script being slow, 
+- I'm looking into [runspaces]() for parallel connection waits
+- use notif ack instead of sending inputs, it's faster, less disruptive and provides audio feedback
+- make a wrapper for using runspace pools sometime later
+
+#!markdown
+
+For unreliability, gotta debug it after using runspaces to make sure it isn't just because of the sluggishness with Jobs.
