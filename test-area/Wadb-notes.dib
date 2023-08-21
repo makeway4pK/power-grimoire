@@ -46,7 +46,44 @@ For unreliability, gotta debug it after using runspaces to make sure it isn't ju
 
 #!markdown
 
-- [ ] find out how to get output from runspaces before completion
+- [x] find out how to get output from runspaces before completion  
+		it waits for the instance to complete, blocking the current thread
+
+#!markdown
+
+- [ ] any advantage of using runspace pools?  
+		Yes
+
+#!pwsh
+
+$range=1..1000;
+
+'Runspace-pool time: '+(measure-command{
+	$rsp=[runspacefactory]::Createrunspacepool(2,$range.count);
+	$rsp.open();
+	$d=@{};
+	$out=$range|%{$ps=[powershell]::create().addscript({
+		param($inp)
+		sleep 1
+		"hi i'm $inp"
+		}).addparameter('inp',$_);
+	$ps.RunspacePool=$rsp
+	,@($ps,
+		$ps.begininvoke(($d[$_]=[System.Management.Automation.PSDataCollection[PSCustomObject]]::new()),$d[$_])
+	)};
+	$out|%{$_[0].endinvoke($_[1])}
+	$rsp.dispose();}).TotalMilliseconds
+	
+'Runspace-only time: '+(measure-command{
+	$d=@{};
+	$out=$range|%{$ps=[powershell]::create().addscript({
+		param($inp)
+		sleep 1
+		"hi i'm $inp"
+		}).addparameter('inp',$_);
+	,@($ps,
+		$ps.begininvoke(($d[$_]=[System.Management.Automation.PSDataCollection[PSCustomObject]]::new()),$d[$_])
+	)};$out|%{$_[0].endinvoke($_[1])}}).TotalMilliseconds
 
 #!markdown
 
