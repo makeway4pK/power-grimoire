@@ -39,3 +39,65 @@ For the script being slow,
 #!markdown
 
 For unreliability, gotta debug it after using runspaces to make sure it isn't just because of the sluggishness with Jobs.
+
+#!markdown
+
+# Todo
+
+#!markdown
+
+- [ ] find out how to get output from runspaces before completion
+
+#!markdown
+
+# Plan
+
+#!markdown
+
+## Flow
+
+#!markdown
+
+```mermaid
+graph TD
+arp[[all addresses from arp]]
+pingscan[[ping all to find more local devices]]
+adb[[spam adb connection]]
+out[(output serials)]
+
+arp --> adb
+pingscan ----> adb
+adb -->out
+
+```
+
+#!markdown
+
+## notes
+
+#!markdown
+
+- wanted to use ipv6 addresses but don't have time to understand and figure out how to get a network's subnet mask in ipv6, it's not as simple as ipv4 masks :rolleyes:
+
+#!markdown
+
+- Get-NetNeighbour is better than arp for filtering idiomatic entries  
+```powershell
+Get-NetNeighbor -InterfaceIndex 8 -AddressFamily IPv4|? {@('Permanent','Unreachable') -cnotcontains $_.State}
+```
+
+#!markdown
+
+- but get interface index and subnet mask from arp, because it is better at ignoring inactive interfaces (ethernet, bluetooth, etc):
+```
+Interface: 192.168.43.85 --- 0x8
+  Internet Address      Physical Address      Type
+  192.168.43.226        26-05-a4-0b-b1-65     dynamic
+  192.168.43.255        ff-ff-ff-ff-ff-ff     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  224.0.0.252           01-00-5e-00-00-fc     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
+  255.255.255.255       ff-ff-ff-ff-ff-ff     static
+
+```
