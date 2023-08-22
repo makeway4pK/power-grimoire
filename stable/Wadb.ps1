@@ -66,31 +66,34 @@ function Find {
 	$FoundIPs = @()
 	
 	
-	$jobs = @()
+	$script = { param($ip)
+		adb connect $ip
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
 	foreach ($ip in $ips) {
 		$ip += ':' + $portNumStr
-		$jobs += Start-Job { adb connect $Using:ip }
+		$threads += [RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('ip', $ip)).
+		SetPool($rsp).
+		BeginInvoke()
 	}
-	if ($jobs | Where-Object -Property 'State' -eq Running) {
-		$FindOutput += ($jobs | Wait-Job -Timeout 1) | Receive-Job 
-	}
-	$jobs | Remove-Job -Force
-	$FoundIPs = $FindOutput -match 'connected to'
-	$FoundIPs = -split $FoundIPs -split ':' -match '(\d+\.)+(\d+)'
+	do {
+		Start-Sleep -Milliseconds 100
+		foreach ($thr in $threads | ? { 
+				$_.IsOutputReady() }) {
+			$output = $thr.GetOutput()
+			if ($output -match 'connected to') {
+				-split $output -split ':' -match '(\d+\.)+(\d+)'
+			}
+		}
+	}while ($threads | Where-Object { $_.handle.isCompleted -eq $false })
 	
-	
-	if ($FoundIPs.count -eq 0) { return "Connection refused by all available devices.`n" + $FindOutput }
-	foreach ($ip in $FoundIPs) {
-		#success
-		$mac = (( -split ($arp -match $ip)) -match '([\dabcdef]+-)+([\dabcdef])')[0]
-		$model = (adb devices -l) -match $ip
-		$model = -split $model
-		$model = $model -match 'model:'
-		$model = ($model -split ':')[1]
-		$devices[$mac] = $model
-	}
-	return $FindOutput	
 }
+	
+
 function QuietWadb {
 	param(
 		[string] $preferedPortNumStr
