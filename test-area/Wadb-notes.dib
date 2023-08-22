@@ -35,7 +35,20 @@ First of all, about the broken feature of remembering devices
 For the script being slow, 
 - I'm looking into [runspaces]() for parallel connection waits
 - use notif ack instead of sending inputs, it's faster, less disruptive and provides audio feedback
-- make a wrapper for using runspace pools sometime later
+
+#!markdown
+
+- make a wrapper for using runspace pools sometime later. stub for later:  
+```
+class RunspacePromise{
+	hidden [powershell]$shell
+	hidden [System.IAsyncResult]$handle
+	[bool]$IsCompleted
+	RunspacePromise([System.Management.Automation.Runspaces.RunspacePool]$rsp){
+		
+	}
+}
+```
 
 #!markdown
 
@@ -53,7 +66,13 @@ For unreliability, gotta debug it after using runspaces to make sure it isn't ju
 #!markdown
 
 - [x] any advantage of using runspace pools?  
-		Yes
+		Yes, minimal, but noticeable over 200 instances  
+Output of the below code:  
+```
+Runspace-pool time: 2845.8395
+Runspace-only time: 3371.9058
+Ran both for 256 instances
+``````
 
 #!pwsh
 
@@ -85,25 +104,11 @@ $range=1..256;
 	,@($ps,
 		$ps.begininvoke(($d[$_]=[System.Management.Automation.PSDataCollection[PSCustomObject]]::new()),$d[$_])
 	)};$out|%{$_[0].endinvoke($_[1])}}).TotalMilliseconds
+	'Ran both for '+$range.count+' instances'
 
 #!markdown
 
 # Plan
-
-#!markdown
-
-```mermaid
-graph TD
-arp[[all addresses from arp]]
-pingscan[[ping all to find more local devices]]
-adb[[spam adb connection]]
-out[(output serials)]
-
-arp --> adb
-pingscan ----> adb
-adb -->out
-
-```
 
 #!markdown
 
@@ -139,3 +144,18 @@ Interface: 192.168.43.85 --- 0x8
 #!markdown
 
 ## Flow
+
+#!markdown
+
+```mermaid
+graph TD
+arp[[all addresses from arp]]
+pingscan[[ping all to find more local devices]]
+adb[[spam adb connection]]
+out[(output serials)]
+
+arp --> adb
+pingscan ----> adb
+adb -->out
+
+```
