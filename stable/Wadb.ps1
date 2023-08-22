@@ -36,24 +36,23 @@ class RunspaceThread {
 		return $this
 	}
 	[RunspaceThread]SetPool([System.Management.Automation.Runspaces.RunspacePool]$rsp) {
-		$state = $rsp.RunspacePoolStateInfo.State
-		if ($state -eq 'BeforeOpen') { $rsp.Open() }
-		if ($state -eq 'Opened') { $this.shell.RunspacePool = $rsp }
-		else { throw "Runspace couldn't be opened" }
+		if ($rsp.RunspacePoolStateInfo.State -eq 'BeforeOpen') { $rsp.Open() }
+		if ($rsp.RunspacePoolStateInfo.State -eq 'Opened') { $this.shell.RunspacePool = $rsp }
+		else { throw "RunspacePool couldn't be opened, it was in state: " + $rsp.RunspacePoolStateInfo.State }
 		return $this
 	}
 	[RunspaceThread]BeginInvoke() {
 		$this.handle = $this.shell.BeginInvoke()
 		return $this
 	}
-	[System.Management.Automation.PSDataCollection]GetOutput() {
-		if (-not $this.IsCompleted()) { return [System.Management.Automation.PSDataCollection]::new() }
-		$out = $this.shell.EndInvoke()
+	[System.Management.Automation.PSDataCollection[PSObject]]GetOutput() {
+		if (-not $this.IsCompleted()) { return [System.Management.Automation.PSDataCollection[PSObject]]::new() }
+		$out = $this.EndInvoke()
 		$this.IsOutputProcessed = $true
 		return $out
 	}
-	[System.Management.Automation.PSDataCollection]EndInvoke() {
-		return $this.shell.EndInvoke()
+	[System.Management.Automation.PSDataCollection[PSObject]]EndInvoke() {
+		return $this.shell.EndInvoke($this.handle)
 	}
 }
 function Find {
