@@ -27,7 +27,7 @@ First of all, about the broken feature of remembering devices
 		and beacuse no network info is trackable spamming adb connections is [inevitable]().
 
 - no proper usecase and problems with clean implementation makes me think I'd rather [let this feature go]()
-> Irrelevant note: iOS devices have a **'bonjour'** thing that let's you know you're talking to an iOS device on the network, apparently requiring minimal authorization
+> Irrelevant note: iOS devices have a **'bonjour'** thing that lets you know you're talking to an iOS device on the network, apparently requiring minimal authorization
 
 #!markdown
 
@@ -56,7 +56,7 @@ For unreliability, gotta debug it after using runspaces to make sure it isn't ju
 
 #!pwsh
 
-$range=1..1000;
+$range=1..256;
 
 'Runspace-pool time: '+(measure-command{
 	$rsp=[runspacefactory]::Createrunspacepool(2,$range.count);
