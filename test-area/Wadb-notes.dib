@@ -27,6 +27,7 @@ First of all, about the broken feature of remembering devices
 		and beacuse no network info is trackable spamming adb connections is [inevitable]().
 
 - no proper usecase and problems with clean implementation makes me think I'd rather [let this feature go]()
+	which means wadb will run only in quiet mode.
 > Irrelevant note: iOS devices have a **'bonjour'** thing that lets you know you're talking to an iOS device on the network, apparently requiring minimal authorization
 
 #!markdown
@@ -51,7 +52,7 @@ For unreliability, gotta debug it after using runspaces to make sure it isn't ju
 
 #!markdown
 
-- [ ] any advantage of using runspace pools?  
+- [x] any advantage of using runspace pools?  
 		Yes
 
 #!pwsh
@@ -88,10 +89,6 @@ $range=1..256;
 #!markdown
 
 # Plan
-
-#!markdown
-
-## Flow
 
 #!markdown
 
@@ -138,3 +135,7 @@ Interface: 192.168.43.85 --- 0x8
   255.255.255.255       ff-ff-ff-ff-ff-ff     static
 
 ```
+
+#!markdown
+
+## Flow
