@@ -24,6 +24,38 @@ function isValidPortNum {
 		return $false
 	}return $true
 }
+class RunspaceThread {
+	hidden [powershell]$shell
+	hidden [System.IAsyncResult]$handle
+	[bool]$IsOutputProcessed = $false
+	
+	[bool]IsCompleted() { return $this.handle.IsCompleted }
+	[bool]IsOutputReady() { return $this.IsCompleted() -and -not $this.IsOutputProcessed }
+	[RunspaceThread]SetShell([powershell]$shell) {
+		$this.shell = $shell
+		return $this
+	}
+	[RunspaceThread]SetPool([System.Management.Automation.Runspaces.RunspacePool]$rsp) {
+		$state = $rsp.RunspacePoolStateInfo.State
+		if ($state -eq 'BeforeOpen') { $rsp.Open() }
+		if ($state -eq 'Opened') { $this.shell.RunspacePool = $rsp }
+		else { throw "Runspace couldn't be opened" }
+		return $this
+	}
+	[RunspaceThread]BeginInvoke() {
+		$this.handle = $this.shell.BeginInvoke()
+		return $this
+	}
+	[System.Management.Automation.PSDataCollection]GetOutput() {
+		if (-not $this.IsCompleted()) { return [System.Management.Automation.PSDataCollection]::new() }
+		$out = $this.shell.EndInvoke()
+		$this.IsOutputProcessed = $true
+		return $out
+	}
+	[System.Management.Automation.PSDataCollection]EndInvoke() {
+		return $this.shell.EndInvoke()
+	}
+}
 function Find {
 	$ips = @()
 	$arp = @()
