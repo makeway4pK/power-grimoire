@@ -143,7 +143,11 @@ Interface: 192.168.43.85 --- 0x8
 
 #!markdown
 
-## Flow
+## Flows
+
+#!markdown
+
+### discovery
 
 #!markdown
 
@@ -158,4 +162,33 @@ arp --> adb
 pingscan ----> adb
 adb -->out
 
+```
+
+#!markdown
+
+### connection sequence
+
+#!markdown
+
+```mermaid
+stateDiagram-v2
+discovery: Discovery
+preferPort: Try connection using Preferred portnum, foreach
+defaultPort: Try connection using Default portnum, foreach
+switchPort: adb tcpip preferredPort, foreach
+preferPort2: Try connection using Preferred portnum, foreach
+ack: Send Ack notif
+output: Output serials
+
+[*] --> discovery
+discovery --> preferPort:Reachable IPs
+preferPort --> output: Already connected
+preferPort --> ack: Connected now
+preferPort --> defaultPort: failed IPs
+defaultPort --> [*]: failed IPs
+defaultPort --> switchPort: Connected IPs
+switchPort --> preferPort2: switched to prefered portnum
+preferPort2 --> ack: Connected
+preferPort2 --> [*]: failed IPs
+ack --> output
 ```

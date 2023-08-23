@@ -62,8 +62,6 @@ function Find {
 	$ips = -split ($arp -match 'dynamic')
 	$ips = $ips -match '(\d+\.)+(\d+)'
 	if ($ips.count -eq 0) { return 'No devices available.' }
-	$FindOutput = @()
-	$FoundIPs = @()
 	
 	
 	$script = { param($ip)
