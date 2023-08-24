@@ -1,9 +1,8 @@
 param(
-	[switch] $Quiet,
 	[string] $Port,
-	[switch] $QNoDisconnect,
-	[switch] $QNoAck,
-	[switch] $QOutSerials
+	[switch] $NoDisconnect,
+	[switch] $NoAck,
+	[switch] $PassSerials
 )
 
 function Wadb {
@@ -98,61 +97,69 @@ function QuietWadb {
 	)
 	if (!(isValidPortNum $preferedPortNumStr)) { return }
 	
-	$portNumStr = '5555'
-	$null = Find
-	$portNumStr = $preferedPortNumStr
+	$reachableIPs = Get-ReachableIPs
 	
-	# asserting $preferedPortNumStr on all devices
-	$sns = adb devices -l
-	$temp = $sns[1..$sns.count] | Where-Object { $_.length -ne 0 }
-	$sns = @()
-	foreach ($sn in $temp) { $sns += , (-split $sn)[0] }
-	$jobs = @()
-	foreach ($sn in $sns) {
-		$jobs += Start-Job {
-			adb -s $Using:sn tcpip $Using:portNumStr
-		}
+	
+	
+	
+}
+
+function Get-ReachableIPs {
+	$arpOut = arp -a
+	$ifLines = $arpOut | sls 'Interface.*?(((\d+\.){3})\d+).*?(0x.*)$'
+	$Subnets = @()
+	$ifIndexes = @()
+	$selfIPs = @()
+	foreach ($line in $ifLines) {
+		$Subnets += $line.Matches.Groups[2].Value
+		$selfIPs += $line.Matches.Groups[1].Value
+		$ifIndexes += $line.Matches.Groups[4].Value 
 	}
-	if ($jobs | Where-Object -Property 'State' -eq Running) {
-		$jobs | Wait-Job | Remove-Job -Force
-	}
-	$null = Find
-	
-	$sns = adb devices -l
-	# $sns = $sns -match $portNumStr
-	$temp = $sns[1..$sns.count] | Where-Object { $_.length -ne 0 }
-	$sns = @()
-	foreach ($sn in $temp) {
-		$temp = -split $sn      
-		$sns += , ($temp[0], ($temp -match 'device:' -split ':')[1])
-	}
-	if (!($QNoDisconnect)) { adb disconnect | Out-Null }
-	
-	
-	$jobs = @()
-	foreach ($sn in $sns) {
-		$sn, $dn = $sn
-		$jobs += Start-Job {
-			adb connect $Using:sn | Out-Null
-			if (!(adb devices -l) -match ($Using:sn)[0]) { return }
-			adb -s $Using:sn wait-for-device
-			
-			"$Using:sn $Using:dn" # for serials output
-			if (!($Using:QNoAck)) {
-				adb -s $Using:sn shell input keyevent HOME
-				adb -s $Using:sn shell input keyevent BACK
-				adb -s $Using:sn shell input keyevent BACK
-				adb -s $Using:sn shell 'input text \>'
-				adb -s $Using:sn shell input text Hello\ $Using:dn\ \ !
+	$foundIPs = @()
+	$foundIPs += foreach ($i in $ifIndexes) {
+		foreach ($neighbour in Get-NetNeighbor -InterfaceIndex $i -AddressFamily IPv4) {
+			if (@('Permanent', 'Unreachable') -cnotcontains $neighbour.State) {
+				$neighbour.IPAddress
 			}
 		}
 	}
-	while ($jobs | Where-Object -Property 'State' -eq Running) {
-		$sns = $jobs | Wait-Job -Any | Receive-Job
-		if ($QOutSerials) { $sns }
+	$foundIPs #Output
+	
+	$dontPingIPs = $selfIPs + $foundIPs
+	$toPingIPs = @()
+	$toPingIPs += foreach ($mask in $Subnets) {
+		foreach ($octet in 1..254) {
+			$ip = $mask + $octet
+			if ($dontPingIPs -cnotcontains $ip) { $ip }
+		}
 	}
-	$jobs | Remove-Job -Force
+	
+	$script = { param($ip)
+		$ping = ping $ip -n 1
+		if ($? -and -not ($ping -cmatch 'unreachable'))
+		{ $ip } #output
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $toPingIPs.count)
+	$threads = @()
+	$threads += foreach ($ip in $toPingIPs) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('ip', $ip)).
+		SetPool($rsp).BeginInvoke()
+	}
+	do {
+		sleep -Milliseconds 100
+		foreach ($thr in $threads | ? { 
+				$_.IsOutputReady() }) {
+			$thr.shell.Commands.Commands
+			$thr.GetOutput() #Output
+			$thr.Dispose()
+		}
+	}while ($threads | Where-Object { !$_.IsCompleted() })
+	$rsp.Close()
 }
+
 Wadb
 Get-Job | Remove-Job -Force
 
