@@ -19,7 +19,7 @@ function isValidPortNum {
 	)
 	$portNum = [uint16]$portNumStr
 	if ($portNum -lt 1024 -OR $portNum -gt 65535) {
-		# -OR ($portNum -gt )) 
+		# -OR ($portNum -gt ))
 		return $false
 	}return $true
 }
@@ -27,7 +27,7 @@ class RunspaceThread {
 	hidden [powershell]$shell
 	hidden [System.IAsyncResult]$handle
 	[bool]$IsOutputProcessed = $false
-	
+
 	[bool]IsCompleted() { return $this.handle.IsCompleted }
 	[bool]IsOutputReady() { return $this.IsCompleted() -and -not $this.IsOutputProcessed }
 	[RunspaceThread]SetShell([powershell]$shell) {
@@ -62,8 +62,8 @@ function Find {
 	$ips = -split ($arp -match 'dynamic')
 	$ips = $ips -match '(\d+\.)+(\d+)'
 	if ($ips.count -eq 0) { return 'No devices available.' }
-	
-	
+
+
 	$script = { param($ip)
 		adb connect $ip
 	}
@@ -80,7 +80,7 @@ function Find {
 	}
 	do {
 		Start-Sleep -Milliseconds 100
-		foreach ($thr in $threads | ? { 
+		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
 			$output = $thr.GetOutput()
 			if ($output -match 'connected to') {
@@ -91,19 +91,19 @@ function Find {
 	}while ($threads | Where-Object { !$_.IsCompleted() })
 	$rsp.Close()
 }
-	
+
 
 function QuietWadb {
 	param(
 		[string] $preferedPortNumStr
 	)
 	if (!(isValidPortNum $preferedPortNumStr)) { return }
-	
+
 	$reachableIPs = Get-ReachableIPs
-	
-	
-	
-	
+
+
+
+
 }
 
 function Get-ReachableIPs {
@@ -115,7 +115,7 @@ function Get-ReachableIPs {
 	foreach ($line in $ifLines) {
 		$Subnets += $line.Matches.Groups[2].Value
 		$selfIPs += $line.Matches.Groups[1].Value
-		$ifIndexes += $line.Matches.Groups[4].Value 
+		$ifIndexes += $line.Matches.Groups[4].Value
 	}
 	$foundIPs = @()
 	$foundIPs += foreach ($i in $ifIndexes) {
@@ -126,7 +126,7 @@ function Get-ReachableIPs {
 		}
 	}
 	$foundIPs #Output
-	
+
 	$dontPingIPs = $selfIPs + $foundIPs
 	$toPingIPs = @()
 	$toPingIPs += foreach ($mask in $Subnets) {
@@ -135,7 +135,7 @@ function Get-ReachableIPs {
 			if ($dontPingIPs -cnotcontains $ip) { $ip }
 		}
 	}
-	
+
 	$script = { param($ip)
 		if (Test-Connection $ip -Quiet -Count 1)
 		{ $ip } #output
@@ -153,9 +153,8 @@ function Get-ReachableIPs {
 	}
 	do {
 		sleep -Milliseconds 100
-		foreach ($thr in $threads | ? { 
+		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$thr.shell.Commands.Commands
 			$thr.GetOutput() #Output
 			$thr.Dispose()
 		}
