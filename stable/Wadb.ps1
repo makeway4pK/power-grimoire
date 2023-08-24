@@ -53,6 +53,7 @@ class RunspaceThread {
 	[System.Management.Automation.PSDataCollection[PSObject]]EndInvoke() {
 		return $this.shell.EndInvoke($this.handle)
 	}
+	Dispose() { $this.shell.Dispose() }
 }
 function Find {
 	$ips = @()
@@ -68,9 +69,9 @@ function Find {
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
-	foreach ($ip in $ips) {
+	$threads += foreach ($ip in $ips) {
 		$ip += ':' + $portNumStr
-		$threads += [RunspaceThread]::new().
+		[RunspaceThread]::new().
 		SetShell([powershell]::Create().
 			AddScript($script).
 			AddParameter('ip', $ip)).
@@ -85,9 +86,10 @@ function Find {
 			if ($output -match 'connected to') {
 				-split $output -split ':' -match '(\d+\.)+(\d+)'
 			}
+			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { $_.handle.isCompleted -eq $false })
-	
+	}while ($threads | Where-Object { !$_.IsCompleted() })
+	$rsp.Close()
 }
 	
 
