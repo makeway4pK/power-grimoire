@@ -4,7 +4,7 @@ param(
 	[switch] $NoAck,
 	[switch] $PassSerials
 )
-
+$defaultPortnumstr = '5555'
 function Wadb {
 	if (!(Get-Process -ErrorAction Ignore adb)) {
 		do { adb start-server }
@@ -27,7 +27,7 @@ class RunspaceThread {
 	hidden [powershell]$shell
 	hidden [System.IAsyncResult]$handle
 	[bool]$IsOutputProcessed = $false
-	[System.Management.Automation.PSDataCollection[PSObject]]$Output
+	hidden [System.Management.Automation.PSDataCollection[PSObject]]$Output
 
 	[bool]IsCompleted() { return $this.handle.IsCompleted }
 	[bool]IsOutputReady() { return $this.IsCompleted() -and -not $this.IsOutputProcessed }
@@ -59,17 +59,42 @@ class RunspaceThread {
 	}
 	Dispose() { $this.shell.Dispose() }
 }
-function Find {
-	$ips = @()
-	$arp = @()
-	$arp += arp -a
-	$ips = -split ($arp -match 'dynamic')
-	$ips = $ips -match '(\d+\.)+(\d+)'
+function Find([string[]]$ips, [string]$port) {
 	if ($ips.count -eq 0) { return 'No devices available.' }
-
-
+	
 	$script = { param($ip)
 		adb connect $ip
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
+	$threads += foreach ($ip in $ips) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('ip', $ip + ':' + $port)).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
+	do {
+		Start-Sleep -Milliseconds 100
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$output = $thr.GetAsyncOutput()
+			if ($output -match 'connected to') {
+				-split $output -split ':' -match '(\d+\.)+(\d+)'
+			}
+			$thr.Dispose()
+		}
+	}while ($threads | Where-Object { !$_.IsCompleted() })
+	$rsp.Close()
+}
+
+function Ack([string[]]$ips) {
+	if ($ips.count -eq 0) { return 'No devices available.' }
+	
+	$script = { param($ip)
+		$txt = adb devices -l
+		$txt = $txt -match $ip 
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
@@ -80,13 +105,13 @@ function Find {
 			AddScript($script).
 			AddParameter('ip', $ip)).
 		SetPool($rsp).
-		BeginInvoke()
+		InvokeAsyncOutput()
 	}
 	do {
 		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$output = $thr.GetOutput()
+			$output = $thr.GetAsyncOutput()
 			if ($output -match 'connected to') {
 				-split $output -split ':' -match '(\d+\.)+(\d+)'
 			}
@@ -96,7 +121,6 @@ function Find {
 	$rsp.Close()
 }
 
-
 function QuietWadb {
 	param(
 		[string] $preferedPortNumStr
@@ -104,6 +128,9 @@ function QuietWadb {
 	if (!(isValidPortNum $preferedPortNumStr)) { return }
 
 	$reachableIPs = Get-ReachableIPs
+	$connected1 = Find $reachableIPs
+	$ackd = Ack $connected1
+	OutSerials $ackd
 
 
 
