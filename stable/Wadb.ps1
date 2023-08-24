@@ -27,6 +27,7 @@ class RunspaceThread {
 	hidden [powershell]$shell
 	hidden [System.IAsyncResult]$handle
 	[bool]$IsOutputProcessed = $false
+	[System.Management.Automation.PSDataCollection[PSObject]]$Output
 
 	[bool]IsCompleted() { return $this.handle.IsCompleted }
 	[bool]IsOutputReady() { return $this.IsCompleted() -and -not $this.IsOutputProcessed }
@@ -44,11 +45,14 @@ class RunspaceThread {
 		$this.handle = $this.shell.BeginInvoke()
 		return $this
 	}
-	[System.Management.Automation.PSDataCollection[PSObject]]GetOutput() {
-		if (-not $this.IsCompleted()) { return [System.Management.Automation.PSDataCollection[PSObject]]::new() }
-		$out = $this.EndInvoke()
+	[RunspaceThread]InvokeAsyncOutput() {
+		$this.Output = [System.Management.Automation.PSDataCollection[PSObject]]::new()
+		$this.handle = $this.shell.BeginInvoke($this.Output, $this.Output)
+		return $this
+	}
+	[System.Management.Automation.PSDataCollection[PSObject]]GetAsyncOutput() {
 		$this.IsOutputProcessed = $true
-		return $out
+		return $this.Output
 	}
 	[System.Management.Automation.PSDataCollection[PSObject]]EndInvoke() {
 		return $this.shell.EndInvoke($this.handle)
@@ -149,13 +153,13 @@ function Get-ReachableIPs {
 		SetShell([powershell]::Create().
 			AddScript($script).
 			AddParameter('ip', $ip)).
-		SetPool($rsp).BeginInvoke()
+		SetPool($rsp).InvokeAsyncOutput()
 	}
 	do {
 		sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$thr.GetOutput() #Output
+			$thr.GetAsyncOutput() #Output
 			$thr.Dispose()
 		}
 	}while ($threads | Where-Object { !$_.IsCompleted() })
