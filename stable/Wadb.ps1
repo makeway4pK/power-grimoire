@@ -137,8 +137,9 @@ function Get-ReachableIPs {
 	}
 	
 	$script = { param($ip)
-		$ping = ping $ip -n 1
-		if ($? -and -not ($ping -cmatch 'unreachable'))
+		if (Test-Connection $ip -Quiet -Count 1)
+		{ $ip } #output
+		elseif (Test-Connection $ip -Quiet)
 		{ $ip } #output
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $toPingIPs.count)
