@@ -156,12 +156,48 @@ function QuietWadb {
 	$ackd = Ack $connected1
 	OutSerials $ackd
 	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
-	ConnectNew($switchPortIps, $preferredPortNumStr)
+	$connected2 = ConnectNew($switchPortIps, $preferredPortNumStr)
+	$ackd = Ack $connected2
+	OutSerials $ackd
 }
 
-
-
-
+function ConnectNew([string[]]$ips, [string]$port) {
+	if (!$ips.count) { return }
+	$script = { param($ip, $port)
+		# attempt connection with default port
+		if ((adb connect $ip) -notmatch 'connected to') { return }
+		
+		# send tcpip cmd to switch adbd to preferred port
+		adb -s $ip`:5555 tcpip $port
+		# connect to the newly opened port
+		$ip += ':' + $port
+		adb connect $ip
+		# confirm connection
+		$confirm = (adb devices) -match $ip
+		$confirm = -split $confirm
+		if ($confirm[1] -eq 'device') {
+			$ip #output}
+		}
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
+	$threads += foreach ($ip in $ips) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameters(@{'ip' = $ip; 'port' = $port })).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
+	do {
+		Start-Sleep -Milliseconds 100
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$null = $thr.GetAsyncOutput()
+			$thr.Dispose()
+		}
+	}while ($threads | Where-Object { !$_.IsCompleted() })
+	$rsp.Close()
 }
 
 function Get-ReachableIPs {
