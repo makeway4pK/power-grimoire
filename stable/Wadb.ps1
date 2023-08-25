@@ -90,16 +90,33 @@ function Find([string[]]$ips, [string]$port) {
 }
 
 function Ack([string[]]$ips) {
-	if ($ips.count -eq 0) { return 'No devices available.' }
+	if ($ips.count -eq 0) { return }
 	
 	$script = { param($ip)
 		$txt = adb devices -l
-		$txt = $txt -match $ip 
+		$txt = $txt -match $ip
+		# return if no match for given ip
+		if (!$txt) { return }
+		
+		# split line into tokens
+		$txt = $txt.foreach({ , -split $_ })
+		# in case there are multiple entries from, say, stale ports,
+		# select the one with 'device' status
+		$txt = $txt.where({ $_[1] -eq 'device' }, 'First')
+		# return if no device is ready for commands
+		if (!$txt) { return }
+		
+		# connection confirmed
+		# extract model field as name of the device
+		$name = $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
+		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
+		# serial number will be the 1st field
+		# send Ack notif
+		adb -s $txt[0] shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
 	$threads += foreach ($ip in $ips) {
-		$ip += ':' + $portNumStr
 		[RunspaceThread]::new().
 		SetShell([powershell]::Create().
 			AddScript($script).
@@ -111,10 +128,7 @@ function Ack([string[]]$ips) {
 		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$output = $thr.GetAsyncOutput()
-			if ($output -match 'connected to') {
-				-split $output -split ':' -match '(\d+\.)+(\d+)'
-			}
+			$null = $thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
 	}while ($threads | Where-Object { !$_.IsCompleted() })
