@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] add b64 icon to wadb ack notif
+
+#!markdown
+
 - [ ] use `adb pull -a` and `adb push --sync`
 
 #!markdown
