@@ -134,7 +134,17 @@ function Ack([string[]]$ips) {
 	}while ($threads | Where-Object { !$_.IsCompleted() })
 	$rsp.Close()
 }
-
+function OutSerials([string[]]$ips) {
+	if ($ips.count -eq 0) { return }
+	$txt = adb devices -l
+	foreach ($ip in $ips) {
+		$sn = $txt -match $ip
+		# in case of multiple matches,
+		# output 1st token of each line that has
+		# 'device' as second token (status)
+		$sn.foreach({ (-split $_).where($_[1] -eq 'device')[0] })
+	}
+}
 function QuietWadb {
 	param(
 		[string] $preferedPortNumStr
