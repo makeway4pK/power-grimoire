@@ -103,17 +103,19 @@ function Ack([string[]]$ips) {
 		$txt = $txt.foreach({ , -split $_ })
 		# in case there are multiple entries from, say, stale ports,
 		# select the one with 'device' status
-		$txt = $txt.where({ $_[1] -eq 'device' }, 'First')
+		$txt = $txt.where({ $_ -eq 'device' }, 'First')[0]
 		# return if no device is ready for commands
 		if (!$txt) { return }
 		
 		# connection confirmed
 		# extract model field as name of the device
-		$name = $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
+		$name = -split $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
 		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
 		# serial number will be the 1st field
+		$serial = $txt[0]
 		# send Ack notif
-		adb -s $txt[0] shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
+		adb -s $serial shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
+		$serial #output
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
