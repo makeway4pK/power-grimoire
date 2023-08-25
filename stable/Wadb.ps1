@@ -68,10 +68,11 @@ function ConnectOld([string[]]$ips, [string]$port) {
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
 	$threads += foreach ($ip in $ips) {
+		$ip += ':' + $port
 		[RunspaceThread]::new().
 		SetShell([powershell]::Create().
 			AddScript($script).
-			AddParameter('ip', $ip + ':' + $port)).
+			AddParameter('ip', $ip )).
 		SetPool($rsp).
 		InvokeAsyncOutput()
 	}
@@ -147,16 +148,16 @@ function OutSerials([string[]]$ips) {
 }
 function QuietWadb {
 	param(
-		[string] $preferedPortNumStr
+		[string] $port
 	)
-	if (!(isValidPortNum $preferedPortNumStr)) { return }
+	if (!(isValidPortNum $port)) { return }
 
 	$reachableIPs = Get-ReachableIPs
-	$connected1 = ConnectOld($reachableIPs, $preferedPortNumStr)
+	$connected1 = ConnectOld $reachableIPs $port
 	$ackd = Ack $connected1
 	OutSerials $ackd
 	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
-	$connected2 = ConnectNew($switchPortIps, $preferredPortNumStr)
+	$connected2 = ConnectNew $switchPortIps $preferredPortNumStr
 	$ackd = Ack $connected2
 	OutSerials $ackd
 }
