@@ -137,17 +137,6 @@ function Ack([string[]]$ips) {
 	}while ($threads | Where-Object { !$_.IsCompleted() })
 	$rsp.Close()
 }
-function OutSerials([string[]]$ips) {
-	if ($ips.count -eq 0) { return }
-	$txt = adb devices -l
-	foreach ($ip in $ips) {
-		$sn = $txt -match $ip
-		# in case of multiple matches,
-		# output 1st token of each line that has
-		# 'device' as second token (status)
-		$sn.foreach({ (-split $_).where($_[1] -eq 'device')[0] })
-	}
-}
 function QuietWadb {
 	param(
 		[string] $port
@@ -157,11 +146,11 @@ function QuietWadb {
 	$reachableIPs = Get-ReachableIPs
 	$connected1 = ConnectOld $reachableIPs $port
 	$ackd = Ack $connected1
-	OutSerials $ackd
+	$ackd
 	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
 	$connected2 = ConnectNew $switchPortIps $preferredPortNumStr
 	$ackd = Ack $connected2
-	OutSerials $ackd
+	$ackd
 }
 
 function ConnectNew([string[]]$ips, [string]$port) {
