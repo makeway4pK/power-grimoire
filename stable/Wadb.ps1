@@ -223,10 +223,12 @@ function Get-ReachableIPs {
 	}
 
 	$script = { param($ip)
-		if (Test-Connection $ip -Quiet -Count 1)
-		{ $ip } #output
-		elseif (Test-Connection $ip -Quiet)
-		{ $ip } #output
+		$timeout = 1
+		$tries = 1
+		while ($tries--) {
+			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
+		}
+		if ($tries -gt -1) { $ip }
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $toPingIPs.count)
 	$threads = @()
