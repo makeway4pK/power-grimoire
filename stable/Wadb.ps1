@@ -114,7 +114,7 @@ function Ack([string[]]$ips) {
 		# serial number will be the 1st field
 		$serial = $txt[0]
 		# send Ack notif
-		adb -s $serial shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
+		$null = adb -s $serial shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
 		$serial #output
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
@@ -131,7 +131,7 @@ function Ack([string[]]$ips) {
 		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$null = $thr.GetAsyncOutput()
+			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
 	}while ($threads | Where-Object { !$_.IsCompleted() })
@@ -148,7 +148,7 @@ function QuietWadb {
 	$ackd = Ack $connected1
 	$ackd
 	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
-	$connected2 = ConnectNew $switchPortIps $preferredPortNumStr
+	$connected2 = ConnectNew $switchPortIps $port
 	$ackd = Ack $connected2
 	$ackd
 }
@@ -160,10 +160,10 @@ function ConnectNew([string[]]$ips, [string]$port) {
 		if ((adb connect $ip) -notmatch 'connected to') { return }
 		
 		# send tcpip cmd to switch adbd to preferred port
-		adb -s $ip`:5555 tcpip $port
+		$null = adb -s $ip`:5555 tcpip $port
 		# connect to the newly opened port
 		$ip += ':' + $port
-		adb connect $ip
+		$null = adb connect $ip
 		# confirm connection
 		$confirm = (adb devices) -match $ip
 		$confirm = -split $confirm
@@ -185,7 +185,7 @@ function ConnectNew([string[]]$ips, [string]$port) {
 		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
-			$null = $thr.GetAsyncOutput()
+			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
 	}while ($threads | Where-Object { !$_.IsCompleted() })
