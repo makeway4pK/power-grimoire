@@ -59,7 +59,7 @@ class RunspaceThread {
 	}
 	Dispose() { $this.shell.Dispose() }
 }
-function Find([string[]]$ips, [string]$port) {
+function ConnectOld([string[]]$ips, [string]$port) {
 	if ($ips.count -eq 0) { return 'No devices available.' }
 	
 	$script = { param($ip)
@@ -152,9 +152,12 @@ function QuietWadb {
 	if (!(isValidPortNum $preferedPortNumStr)) { return }
 
 	$reachableIPs = Get-ReachableIPs
-	$connected1 = Find $reachableIPs
+	$connected1 = ConnectOld($reachableIPs, $preferedPortNumStr)
 	$ackd = Ack $connected1
 	OutSerials $ackd
+	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
+	ConnectNew($switchPortIps, $preferredPortNumStr)
+}
 
 
 
