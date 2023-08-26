@@ -61,7 +61,7 @@ class RunspaceThread {
 	Dispose() { $this.shell.Dispose() }
 }
 function ConnectOld([string[]]$ips, [string]$port) {
-	if ($ips.count -eq 0) { return 'No devices available.' }
+	if ($ips.count -eq 0) { return }
 	
 	$script = { param($ip)
 		adb connect $ip
@@ -86,7 +86,7 @@ function ConnectOld([string[]]$ips, [string]$port) {
 			}
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -133,7 +133,7 @@ function Ack([string[]]$sns) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 function QuietWadb {
@@ -187,7 +187,7 @@ function ConnectNew([string[]]$ips, [string]$port) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -244,7 +244,7 @@ function Get-ReachableIPs {
 			$thr.GetAsyncOutput() #Output
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
