@@ -4,7 +4,6 @@ param(
 	[switch] $NoAck,
 	[switch] $PassSerials
 )
-$defaultPortnumstr = '5555'
 function Wadb {
 	if (!(Get-Process -ErrorAction Ignore adb)) {
 		do { adb start-server }
@@ -82,7 +81,7 @@ function ConnectOld([string[]]$ips, [string]$port) {
 				$_.IsOutputReady() }) {
 			$output = $thr.GetAsyncOutput()
 			if ($output -match 'connected to') {
-				-split $output -split ':' -match '(\d+\.)+(\d+)'
+				$output.split()[-1]
 			}
 			$thr.Dispose()
 		}
@@ -90,12 +89,12 @@ function ConnectOld([string[]]$ips, [string]$port) {
 	$rsp.Close()
 }
 
-function Ack([string[]]$ips) {
-	if ($ips.count -eq 0) { return }
+function Ack([string[]]$sns) {
+	if ($sns.count -eq 0) { return }
 	
-	$script = { param($ip)
+	$script = { param($sn)
 		$txt = adb devices -l
-		$txt = $txt -match $ip
+		$txt = $txt -match $sn
 		# return if no match for given ip
 		if (!$txt) { return }
 		
@@ -112,18 +111,18 @@ function Ack([string[]]$ips) {
 		$name = -split $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
 		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
 		# serial number will be the 1st field
-		$serial = $txt[0]
+		$sn = $txt[0]
 		# send Ack notif
-		$null = adb -s $serial shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
-		$serial #output
+		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
+		$sn #output
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
 	$threads = @()
-	$threads += foreach ($ip in $ips) {
+	$threads += foreach ($sn in $sns) {
 		[RunspaceThread]::new().
 		SetShell([powershell]::Create().
 			AddScript($script).
-			AddParameter('ip', $ip)).
+			AddParameter('sn', $sn)).
 		SetPool($rsp).
 		InvokeAsyncOutput()
 	}
@@ -144,10 +143,12 @@ function QuietWadb {
 	if (!(isValidPortNum $port)) { return }
 
 	$reachableIPs = Get-ReachableIPs
-	$connected1 = ConnectOld $reachableIPs $port
-	$ackd = Ack $connected1
+	$connectedSNs = ConnectOld $reachableIPs $port
+	$ackd = Ack $connectedSNs
 	$ackd
-	$switchPortIps = $reachableIps.where({ $_ -notin $connected1 })
+	
+	$connectedIPs = $connectedSNs.foreach({ ($_ -split ':')[0] })
+	$switchPortIps = $reachableIps.where({ $_ -notin $connectedIPs })
 	$connected2 = ConnectNew $switchPortIps $port
 	$ackd = Ack $connected2
 	$ackd
@@ -162,13 +163,12 @@ function ConnectNew([string[]]$ips, [string]$port) {
 		# send tcpip cmd to switch adbd to preferred port
 		$null = adb -s $ip`:5555 tcpip $port
 		# connect to the newly opened port
-		$ip += ':' + $port
-		$null = adb connect $ip
+		$null = adb connect $ip`:$port
 		# confirm connection
 		$confirm = (adb devices) -match $ip
 		$confirm = -split $confirm
 		if ($confirm[1] -eq 'device') {
-			$ip #output}
+			$confirm[0] #output
 		}
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
