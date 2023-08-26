@@ -216,8 +216,14 @@ conNew --sns--> Ack
 
 #!markdown
 
-- I want to pipe chain pingscan (get-reachables), connectOld, connectnew and Ack
-- Reachable IPs are needed by both ConnectOld() and ConnectNew()
-- ips that pass ConnectOld() can be skipped from ConnectOld()'s input
-	- [x] solved: pass input to ConnectOld() by [ref] and remove values that pass(connection success) and pipe the input var in main to ConnectNew in a seperate thread that runs in a loop while(previous thread isrunning())
-- Ack is optional, solved: prepare pipeline command string and then invoke with &
+~~- I want to pipe chain pingscan (get-reachables), connectOld, connectnew and Ack~~
+~~- Reachable IPs are needed by both ConnectOld() and ConnectNew()~~
+~~- ips that pass ConnectOld() can be skipped from ConnectOld()'s input~~
+  ~~- [x] solved: pass input to ConnectOld() by [ref] and remove values that pass(connection success) and pipe the input var in main to ConnectNew in a seperate thread that runs in a loop while(previous thread isrunning())~~
+~~- Ack is optional, solved: prepare pipeline command string and then invoke with &~~
+
+#!markdown
+
+I was mistaken, unlike hardware pipelines, powershell pipelines don't allow their stages to run concurrently.  
+Powershell pipelines process one object at a time, 2nd obj isn't taken up by the 1st stage until the final stage is done processing 1st obj. 
+Pipe chaining would speedup only the first object's processing time, not the second. Overall performance will be worse for network ops, as they spend most time on waiting.
