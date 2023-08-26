@@ -76,7 +76,6 @@ function ConnectOld([string[]]$ips, [string]$port) {
 		InvokeAsyncOutput()
 	}
 	do {
-		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
 			$output = $thr.GetAsyncOutput()
@@ -85,7 +84,7 @@ function ConnectOld([string[]]$ips, [string]$port) {
 			}
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() })
+	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -127,13 +126,12 @@ function Ack([string[]]$sns) {
 		InvokeAsyncOutput()
 	}
 	do {
-		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() })
+	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 function QuietWadb {
@@ -182,13 +180,12 @@ function ConnectNew([string[]]$ips, [string]$port) {
 		InvokeAsyncOutput()
 	}
 	do {
-		Start-Sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() })
+	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -240,13 +237,12 @@ function Get-ReachableIPs {
 		SetPool($rsp).InvokeAsyncOutput()
 	}
 	do {
-		sleep -Milliseconds 100
 		foreach ($thr in $threads | ? {
 				$_.IsOutputReady() }) {
 			$thr.GetAsyncOutput() #Output
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() })
+	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
