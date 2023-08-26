@@ -192,3 +192,32 @@ preferPort2 --> ack: Connected
 preferPort2 --> [*]: failed IPs
 ack --> output
 ```
+
+#!markdown
+
+### functions
+
+#!markdown
+
+```mermaid
+flowchart LR
+
+pingscan[Get-reachables]
+conOlds[ConnectOld]
+conNew[ConnectNew]
+Ack[Ack]
+
+
+pingscan --ips--> conOlds
+conOlds --sns--> Ack
+conOlds --remn.g ips--> conNew
+conNew --sns--> Ack
+```
+
+#!markdown
+
+- I want to pipe chain pingscan (get-reachables), connectOld, connectnew and Ack
+- Reachable IPs are needed by both ConnectOld() and ConnectNew()
+- ips that pass ConnectOld() can be skipped from ConnectOld()'s input
+	- [x] solved: pass input to ConnectOld() by [ref] and remove values that pass(connection success) and pipe the input var in main to ConnectNew in a seperate thread that runs in a loop while(previous thread isrunning())
+- Ack is optional, solved: prepare pipeline command string and then invoke with &
