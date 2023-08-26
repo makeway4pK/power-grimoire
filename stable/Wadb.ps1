@@ -28,8 +28,8 @@ class RunspaceThread {
 	[bool]$IsOutputProcessed = $false
 	hidden [System.Management.Automation.PSDataCollection[PSObject]]$Output
 
-	[bool]IsCompleted() { return $this.handle.IsCompleted }
-	[bool]IsOutputReady() { return $this.IsCompleted() -and -not $this.IsOutputProcessed }
+	[bool]IsRunning() { return $this.handle -and -not $this.handle.IsCompleted }
+	[bool]IsOutputReady() { return -not $this.IsRunning() -and -not $this.IsOutputProcessed }
 	[RunspaceThread]SetShell([powershell]$shell) {
 		$this.shell = $shell
 		return $this
@@ -50,11 +50,13 @@ class RunspaceThread {
 		return $this
 	}
 	[System.Management.Automation.PSDataCollection[PSObject]]GetAsyncOutput() {
-		$this.IsOutputProcessed = $true
+		if ($this.IsOutputReady) { $this.IsOutputProcessed = $true }
 		return $this.Output
 	}
 	[System.Management.Automation.PSDataCollection[PSObject]]EndInvoke() {
-		return $this.shell.EndInvoke($this.handle)
+		$this.shell.EndInvoke($this.handle)
+		$this.IsOutputProcessed = $true
+		return $this.Output
 	}
 	Dispose() { $this.shell.Dispose() }
 }
@@ -84,7 +86,7 @@ function ConnectOld([string[]]$ips, [string]$port) {
 			}
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -131,7 +133,7 @@ function Ack([string[]]$sns) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 function QuietWadb {
@@ -185,7 +187,7 @@ function ConnectNew([string[]]$ips, [string]$port) {
 			$thr.GetAsyncOutput()
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
@@ -242,7 +244,7 @@ function Get-ReachableIPs {
 			$thr.GetAsyncOutput() #Output
 			$thr.Dispose()
 		}
-	}while ($threads | Where-Object { !$_.IsCompleted() } -and -not (Start-Sleep -Milliseconds 100) )
+	}while ($threads | Where-Object { -not $_.IsRunning() } -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
 
