@@ -88,6 +88,15 @@ function ConnectOld([string[]]$ips, [string]$port) {
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
+function GetProcedure-ConnectOld() {
+	return { param($ip)
+		$output = adb connect $ip
+		if ($output -match 'connected to') {
+			$output.split()[-1]
+		}
+		return
+	}
+}
 function Greet([string[]]$sns) {
 	if ($sns.count -eq 0) { return }
 	
@@ -134,6 +143,32 @@ function Greet([string[]]$sns) {
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
+function GetProcedure-Greet {
+	return { param($sn)
+		$txt = adb devices -l
+		$txt = $txt -match $sn
+		# return if no match for given ip
+		if (!$txt) { return }
+		
+		# split line into tokens
+		$txt = $txt.foreach({ , -split $_ })
+		# in case there are multiple entries from, say, stale ports,
+		# select the one with 'device' status
+		$txt = $txt.where({ $_ -eq 'device' }, 'First')[0]
+		# return if no device is ready for commands
+		if (!$txt) { return }
+		
+		# connection confirmed
+		# extract model field as name of the device
+		$name = -split $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
+		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
+		# serial number will be the 1st field
+		$sn = $txt[0]
+		# send Greet notif
+		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbGreeting "'Hello, $name !'"
+		$sn #output
+	}
+}
 function QuietWadb {
 	param(
 		[string] $port
@@ -150,6 +185,44 @@ function QuietWadb {
 	$connected2 = ConnectNew $switchPortIps $port
 	$Greetd = Greet $connected2
 	$Greetd
+}
+
+function Wadb-Async {
+	$arpOut = arp -a
+	$ifLines = $arpOut | sls 'Interface.*?(((\d+\.){3})\d+).*?(0x.*)$'
+	$Subnets = @()
+	$ifIndexes = @()
+	$selfIPs = @()
+	foreach ($line in $ifLines) {
+		$Subnets += $line.Matches.Groups[2].Value
+		$selfIPs += $line.Matches.Groups[1].Value
+		$ifIndexes += $line.Matches.Groups[4].Value
+	}
+	$foundIPs = @()
+	$foundIPs += foreach ($i in $ifIndexes) {
+		foreach ($neighbour in Get-NetNeighbor -InterfaceIndex $i -AddressFamily IPv4) {
+			if (@('Permanent', 'Unreachable') -cnotcontains $neighbour.State) {
+				$neighbour.IPAddress
+			}
+		}
+	}
+	$foundIPs
+	
+	$ConnectOld_Procedure = [string](GetProcedure-ConnectOld)
+	$ConnectNew_Procedure = [string](GetProcedure-ConnectNew)
+	if (!$NoGreeting) {
+		$ConnectOld_Procedure += "`n" + [string](GetProcedure-Greet)
+		$ConnectNew_Procedure += "`n" + [string](GetProcedure-Greet)
+	}
+	
+	# create threads to connect to old ips, input iplist and port
+	
+	# create threads to connect to new ips, input iplist and port
+	
+	# wait for output from any of all threads
+	
+	
+	
 }
 
 function ConnectNew([string[]]$ips, [string]$port) {
@@ -187,6 +260,23 @@ function ConnectNew([string[]]$ips, [string]$port) {
 		}
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
+}
+function GetProcedure-ConnectNew {
+	return { param($ip, $port)
+		# attempt connection with default port
+		if ((adb connect $ip) -notmatch 'connected to') { return }
+	
+		# send tcpip cmd to switch adbd to preferred port
+		$null = adb -s $ip`:5555 tcpip $port
+		# connect to the newly opened port
+		$null = adb connect $ip`:$port
+		# confirm connection
+		$confirm = (adb devices) -match $ip
+		$confirm = -split $confirm
+		if ($confirm[1] -eq 'device') {
+			$confirm[0] #output
+		}
+	}
 }
 
 function Get-ReachableIPs {
