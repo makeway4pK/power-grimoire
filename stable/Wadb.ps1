@@ -213,11 +213,56 @@ function Wadb-Async {
 		$Procedure += "`n" + [string](GetProcedure-Greet)
 	}
 	
-	# create threads to connect to ips, input iplist and port
+	# create threads to connect to found ips, input iplist and port
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $Subnets.count * 254)
+	$threads = @()
+	$threads += foreach ($ip in $foundIPs) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript([scriptblock]::Create($Procedure)).
+			AddParameters(@{'ip' = $ip; 'port' = $Port })).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
 	
-	# create threads to pingscan ips and read output from completed threads in same loop
+	# Add Pingscan procedure to connect previous procedure
+	$Procedure = [string](GetProcedure-Pingscan) + "`n" + $Procedure
+	# Prepare Pingscan candidates
+	$dontPingIPs = $selfIPs + $foundIPs
+	$PingsCandidates = @()
+	$PingsCandidates += foreach ($mask in $Subnets) {
+		foreach ($octet in 1..254) {
+			$ip = $mask + $octet
+			if ($dontPingIPs -cnotcontains $ip) { $ip }
+		}
+	}
 	
-	
+	# create threads to pingscan & connect ips, and read output from completed threads in same loop
+	$i = 0
+	$BatchSize = 50
+	do {
+		if ($PassSerials) {
+			foreach ($thr in $threads | ? {
+					$_.IsOutputReady() }) {
+				$thr.GetAsyncOutput() #output
+				$thr.Dispose()
+			}
+		}
+		if ($i -gt $PingsCandidates.Count) { continue }
+		$threads += foreach ($ip in $PingsCandidates[$i..($i + $BatchSize)]) {
+			[RunspaceThread]::new().
+			SetShell([powershell]::Create().
+				AddScript([scriptblock]::Create($Procedure)).
+				AddParameters(@{'ip' = $ip; 'port' = $Port })).
+			SetPool($rsp).
+			InvokeAsyncOutput()
+		}
+		$i += $BatchSize + 1
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
+	if (!$PassSerials) {
+		foreach ($thr in $threads) { $thr.Dispose() }
+	}
 }
 
 function ConnectNew([string[]]$ips, [string]$port) {
@@ -330,6 +375,16 @@ function Get-ReachableIPs {
 		}
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
+}
+function GetProcedure-Pingscan {
+	return { param($ip)
+		$timeout = 1
+		$tries = 1
+		while ($tries--) {
+			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
+		}
+		if ($tries -gt -1) { $ip }
+	}
 }
 
 Wadb
