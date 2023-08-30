@@ -89,7 +89,8 @@ function ConnectOld([string[]]$ips, [string]$port) {
 	$rsp.Close()
 }
 function GetProcedure-ConnectOld() {
-	return { param($ip)
+	return {
+		#  param($ip)
 		$output = adb connect $ip
 		if ($output -match 'connected to') {
 			$output.split()[-1]
@@ -144,7 +145,8 @@ function Greet([string[]]$sns) {
 	$rsp.Close()
 }
 function GetProcedure-Greet {
-	return { param($sn)
+	return {
+		#  param($sn)
 		$txt = adb devices -l
 		$txt = $txt -match $sn
 		# return if no match for given ip
@@ -206,7 +208,6 @@ function Wadb-Async {
 			}
 		}
 	}
-	$foundIPs
 	
 	$Procedure = [string](GetProcedure-Connect)
 	if (!$NoGreeting) {
@@ -219,7 +220,7 @@ function Wadb-Async {
 	$threads += foreach ($ip in $foundIPs) {
 		[RunspaceThread]::new().
 		SetShell([powershell]::Create().
-			AddScript([scriptblock]::Create($Procedure)).
+			AddScript([scriptblock]::Create('param($ip,$port)' + "`n" + $Procedure)).
 			AddParameters(@{'ip' = $ip; 'port' = $Port })).
 		SetPool($rsp).
 		InvokeAsyncOutput()
@@ -252,7 +253,7 @@ function Wadb-Async {
 		$threads += foreach ($ip in $PingsCandidates[$i..($i + $BatchSize)]) {
 			[RunspaceThread]::new().
 			SetShell([powershell]::Create().
-				AddScript([scriptblock]::Create($Procedure)).
+				AddScript([scriptblock]::Create('param($ip,$port)' + "`n" + $Procedure)).
 				AddParameters(@{'ip' = $ip; 'port' = $Port })).
 			SetPool($rsp).
 			InvokeAsyncOutput()
@@ -302,7 +303,8 @@ function ConnectNew([string[]]$ips, [string]$port) {
 	$rsp.Close()
 }
 function GetProcedure-Connect {
-	return { param($ip, $port)
+	return {
+		#  param($ip, $port)
 		if ((adb connect $ip`:$port) -notmatch 'connected to') {
 			# attempt connection with default port
 			if ((adb connect $ip) -notmatch 'connected to') { return }
@@ -377,7 +379,8 @@ function Get-ReachableIPs {
 	$rsp.Close()
 }
 function GetProcedure-Pingscan {
-	return { param($ip)
+	return {
+		#  param($ip)
 		$timeout = 1
 		$tries = 1
 		while ($tries--) {
