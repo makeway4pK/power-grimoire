@@ -208,19 +208,14 @@ function Wadb-Async {
 	}
 	$foundIPs
 	
-	$ConnectOld_Procedure = [string](GetProcedure-ConnectOld)
-	$ConnectNew_Procedure = [string](GetProcedure-ConnectNew)
+	$Procedure = [string](GetProcedure-Connect)
 	if (!$NoGreeting) {
-		$ConnectOld_Procedure += "`n" + [string](GetProcedure-Greet)
-		$ConnectNew_Procedure += "`n" + [string](GetProcedure-Greet)
+		$Procedure += "`n" + [string](GetProcedure-Greet)
 	}
 	
-	# create threads to connect to old ips, input iplist and port
+	# create threads to connect to ips, input iplist and port
 	
-	# create threads to connect to new ips, input iplist and port
-	
-	# wait for output from any of all threads
-	
+	# create threads to pingscan ips and read output from completed threads in same loop
 	
 	
 }
@@ -261,15 +256,16 @@ function ConnectNew([string[]]$ips, [string]$port) {
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
-function GetProcedure-ConnectNew {
+function GetProcedure-Connect {
 	return { param($ip, $port)
-		# attempt connection with default port
-		if ((adb connect $ip) -notmatch 'connected to') { return }
-	
-		# send tcpip cmd to switch adbd to preferred port
-		$null = adb -s $ip`:5555 tcpip $port
-		# connect to the newly opened port
-		$null = adb connect $ip`:$port
+		if ((adb connect $ip`:$port) -notmatch 'connected to') {
+			# attempt connection with default port
+			if ((adb connect $ip) -notmatch 'connected to') { return }
+			# send tcpip cmd to switch adbd to preferred port
+			$null = adb -s $ip`:5555 tcpip $port
+			# connect to the newly opened port
+			$null = adb connect $ip`:$port
+		}
 		# confirm connection
 		$confirm = (adb devices) -match $ip
 		$confirm = -split $confirm
