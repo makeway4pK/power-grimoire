@@ -1,7 +1,6 @@
 param(
 	[string] $Port,
-	[switch] $NoDisconnect,
-	[switch] $NoAck,
+	[switch] $NoGreeting,
 	[switch] $PassSerials
 )
 function Wadb {
@@ -89,8 +88,7 @@ function ConnectOld([string[]]$ips, [string]$port) {
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
 }
-
-function Ack([string[]]$sns) {
+function Greet([string[]]$sns) {
 	if ($sns.count -eq 0) { return }
 	
 	$script = { param($sn)
@@ -113,8 +111,8 @@ function Ack([string[]]$sns) {
 		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
 		# serial number will be the 1st field
 		$sn = $txt[0]
-		# send Ack notif
-		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbAck "'Hello, $name !'"
+		# send Greet notif
+		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbGreeting "'Hello, $name !'"
 		$sn #output
 	}
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
@@ -144,14 +142,14 @@ function QuietWadb {
 
 	$reachableIPs = Get-ReachableIPs
 	$connectedSNs = ConnectOld $reachableIPs $port
-	$ackd = Ack $connectedSNs
-	$ackd
+	$Greetd = Greet $connectedSNs
+	$Greetd
 	
 	$connectedIPs = $connectedSNs.foreach({ ($_ -split ':')[0] })
 	$switchPortIps = $reachableIps.where({ $_ -notin $connectedIPs })
 	$connected2 = ConnectNew $switchPortIps $port
-	$ackd = Ack $connected2
-	$ackd
+	$Greetd = Greet $connected2
+	$Greetd
 }
 
 function ConnectNew([string[]]$ips, [string]$port) {
