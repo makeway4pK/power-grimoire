@@ -147,6 +147,7 @@ function Greet([string[]]$sns) {
 function GetProcedure-Greet {
 	return {
 		#  param($sn)
+		$sn = $ip
 		$txt = adb devices -l
 		$txt = $txt -match $sn
 		# return if no match for given ip
@@ -168,7 +169,7 @@ function GetProcedure-Greet {
 		$sn = $txt[0]
 		# send Greet notif
 		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbGreeting "'Hello, $name !'"
-		$sn #output
+		$ip = $sn #output
 	}
 }
 function QuietWadb {
@@ -316,9 +317,8 @@ function GetProcedure-Connect {
 		# confirm connection
 		$confirm = (adb devices) -match $ip
 		$confirm = -split $confirm
-		if ($confirm[1] -eq 'device') {
-			$confirm[0] #output
-		}
+		if ($confirm[1] -ne 'device') { return }
+		$ip = $confirm[0] #output
 	}
 }
 
@@ -386,7 +386,7 @@ function GetProcedure-Pingscan {
 		while ($tries--) {
 			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
 		}
-		if ($tries -gt -1) { $ip }
+		if ($tries -lt 0) { return }
 	}
 }
 

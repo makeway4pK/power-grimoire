@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] figure out runspace debug/verbose output, other that `&{}*>&1`
+
+#!markdown
+
 - [ ] add b64 icon to wadb ack notif
 
 #!markdown
