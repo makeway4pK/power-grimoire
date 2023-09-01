@@ -116,6 +116,18 @@ $range=1..256;
 
 #!markdown
 
+- timeout-tries pingscan samples:  
+	- 1sec x 3tries = 13 sec avg,  3/20 fails
+	- 2sec x 2tries = 11 sec avg,  1/20 fails
+	- 3sec x 1tries =  7 sec avg,  3/20 fails
+	- 4sec x 1tries = 6.5sec avg, 10/20 fails  
+
+- Longer timeout seems to speedup runspace execution, probably thanks to the extra idle time
+- More tries increase reliability, as long as timeout isn't too short(1sec is too short)
+- Deciding on [2sec x 2tries]()
+
+#!markdown
+
 - wanted to use ipv6 addresses but don't have time to understand and figure out how to get a network's subnet mask in ipv6, it's not as simple as ipv4 masks :rolleyes:
 
 #!markdown
