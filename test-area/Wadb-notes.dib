@@ -1,0 +1,255 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+The Problem: Wadb is slow, unreliable and has now-broken features.
+- Slow: takes 8s to 5s to connect
+- unreliable: sometimes the warmup script gets no output, but upon later inspection, the connection had succeded.
+- now-broken features: Since the last time I edited this script, smartphones have got
+	mac-randomization feature to avoid tracking across diff wifi networks. It's a privacy n security feature
+	so, it'll be pervasive soon, no point trying to work around it, tracking devices via mac is better forgotten.
+
+#!markdown
+
+First of all, about the broken feature of remembering devices
+ - It is useful only if devices can be identified between sessions
+ - that will require saving a token(as a file most probably) onto the device
+ - saving a token on the device is a bit invasive
+ - not a useful id for security sensitive usecase
+ - potential uses of this feature:
+	- recognising warmup device
+		can be done by saving the token in the file itself,
+		no need for a token specific to wadb script
+ 	- avoiding stray connection requests
+		saving a file requires an adb connection in the first place
+		and beacuse no network info is trackable spamming adb connections is [inevitable]().
+
+- no proper usecase and problems with clean implementation makes me think I'd rather [let this feature go]()
+	which means wadb will run only in quiet mode.
+> Irrelevant note: iOS devices have a **'bonjour'** thing that lets you know you're talking to an iOS device on the network, apparently requiring minimal authorization
+
+#!markdown
+
+For the script being slow, 
+- I'm looking into [runspaces]() for parallel connection waits
+- use notif ack instead of sending inputs, it's faster, less disruptive and provides audio feedback
+
+#!markdown
+
+- make a wrapper for using runspace pools sometime later. stub for later:  
+```
+class RunspacePromise{
+	hidden [powershell]$shell
+	hidden [System.IAsyncResult]$handle
+	[bool]$IsCompleted
+	RunspacePromise([System.Management.Automation.Runspaces.RunspacePool]$rsp){
+		
+	}
+}
+```
+
+#!markdown
+
+For unreliability, gotta debug it after using runspaces to make sure it isn't just because of the sluggishness with Jobs.
+
+#!markdown
+
+# Todo
+
+#!markdown
+
+- [ ] could it be possible to return wadb routine even before all pingscan are finished? by returning a promise object that gets filled by a thread(s) in the background.
+	- will need a loop to collect output and dispose threads, this will have to be in a thread of its own thus we'll need
+	- a live object to collect the output
+
+#!markdown
+
+- [ ] cleanup
+	- [ ] aliases subst.n
+	- [ ] loops micropt.n
+	- [ ] other micropt.n
+	- [ ] unused functions
+
+#!markdown
+
+- [x] find out how to get output from runspaces before completion  
+		it waits for the instance to complete, blocking the current thread
+
+#!markdown
+
+- [x] any advantage of using runspace pools?  
+		Yes, minimal, but noticeable over 200 instances  
+Output of the below code:  
+```
+Runspace-pool time: 2845.8395
+Runspace-only time: 3371.9058
+Ran both for 256 instances
+``````
+
+#!pwsh
+
+$range=1..256;
+
+'Runspace-pool time: '+(measure-command{
+	$rsp=[runspacefactory]::Createrunspacepool(2,$range.count);
+	$rsp.open();
+	$d=@{};
+	$out=$range|%{$ps=[powershell]::create().addscript({
+		param($inp)
+		sleep 1
+		"hi i'm $inp"
+		}).addparameter('inp',$_);
+	$ps.RunspacePool=$rsp
+	,@($ps,
+		$ps.begininvoke(($d[$_]=[System.Management.Automation.PSDataCollection[PSCustomObject]]::new()),$d[$_])
+	)};
+	$out|%{$_[0].endinvoke($_[1])}
+	$rsp.dispose();}).TotalMilliseconds
+	
+'Runspace-only time: '+(measure-command{
+	$d=@{};
+	$out=$range|%{$ps=[powershell]::create().addscript({
+		param($inp)
+		sleep 1
+		"hi i'm $inp"
+		}).addparameter('inp',$_);
+	,@($ps,
+		$ps.begininvoke(($d[$_]=[System.Management.Automation.PSDataCollection[PSCustomObject]]::new()),$d[$_])
+	)};$out|%{$_[0].endinvoke($_[1])}}).TotalMilliseconds
+	'Ran both for '+$range.count+' instances'
+
+#!markdown
+
+# Plan
+
+#!markdown
+
+## notes
+
+#!markdown
+
+- timeout-tries pingscan samples:  
+	- 1sec x 3tries = 13 sec avg,  3/20 fails
+	- 2sec x 2tries = 11 sec avg,  1/20 fails
+	- 3sec x 1tries =  7 sec avg,  3/20 fails
+	- 4sec x 1tries = 6.5sec avg, 10/20 fails  
+
+- Longer timeout seems to speedup runspace execution, probably thanks to the extra idle time
+- More tries increase reliability, as long as timeout isn't too short(1sec is too short)
+- Deciding on [2sec x 2tries]()
+
+#!markdown
+
+- wanted to use ipv6 addresses but don't have time to understand and figure out how to get a network's subnet mask in ipv6, it's not as simple as ipv4 masks :rolleyes:
+
+#!markdown
+
+- Get-NetNeighbour is better than arp for filtering idiomatic entries  
+```powershell
+Get-NetNeighbor -InterfaceIndex 8 -AddressFamily IPv4|? {@('Permanent','Unreachable') -cnotcontains $_.State}
+```
+
+#!markdown
+
+- but get interface index and subnet mask from arp, because it is better at ignoring inactive interfaces (ethernet, bluetooth, etc):
+```
+Interface: 192.168.43.85 --- 0x8
+  Internet Address      Physical Address      Type
+  192.168.43.226        26-05-a4-0b-b1-65     dynamic
+  192.168.43.255        ff-ff-ff-ff-ff-ff     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  224.0.0.252           01-00-5e-00-00-fc     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
+  255.255.255.255       ff-ff-ff-ff-ff-ff     static
+
+```
+
+#!markdown
+
+## Flows
+
+#!markdown
+
+### discovery
+
+#!markdown
+
+```mermaid
+graph TD
+arp[[all addresses from arp]]
+pingscan[[ping all to find more local devices]]
+adb[[spam adb connection]]
+out[(output serials)]
+
+arp --> adb
+pingscan ----> adb
+adb -->out
+
+```
+
+#!markdown
+
+### connection sequence
+
+#!markdown
+
+```mermaid
+stateDiagram-v2
+discovery: Discovery
+preferPort: Try connection using Preferred portnum, foreach
+defaultPort: Try connection using Default portnum, foreach
+switchPort: adb tcpip preferredPort, foreach
+preferPort2: Try connection using Preferred portnum, foreach
+ack: Send Ack notif
+output: Output serials
+
+[*] --> discovery
+discovery --> preferPort:Reachable IPs
+preferPort --> output: Already connected
+preferPort --> ack: Connected now
+preferPort --> defaultPort: failed IPs
+defaultPort --> [*]: failed IPs
+defaultPort --> switchPort: Connected IPs
+switchPort --> preferPort2: switched to prefered portnum
+preferPort2 --> ack: Connected
+preferPort2 --> [*]: failed IPs
+ack --> output
+```
+
+#!markdown
+
+### functions
+
+#!markdown
+
+```mermaid
+flowchart LR
+
+pingscan[Get-reachables]
+conOlds[ConnectOld]
+conNew[ConnectNew]
+Ack[Ack]
+
+
+pingscan --ips--> conOlds
+conOlds --sns--> Ack
+conOlds --remn.g ips--> conNew
+conNew --sns--> Ack
+```
+
+#!markdown
+
+~~- I want to pipe chain pingscan (get-reachables), connectOld, connectnew and Ack~~
+~~- Reachable IPs are needed by both ConnectOld() and ConnectNew()~~
+~~- ips that pass ConnectOld() can be skipped from ConnectOld()'s input~~
+  ~~- [x] solved: pass input to ConnectOld() by [ref] and remove values that pass(connection success) and pipe the input var in main to ConnectNew in a seperate thread that runs in a loop while(previous thread isrunning())~~
+~~- Ack is optional, solved: prepare pipeline command string and then invoke with &~~
+
+#!markdown
+
+I was mistaken, unlike hardware pipelines, powershell pipelines don't allow their stages to run concurrently.  
+Powershell pipelines process one object at a time, 2nd obj isn't taken up by the 1st stage until the final stage is done processing 1st obj. 
+Pipe chaining would speedup only the first object's processing time, not the second. Overall performance will be worse for network ops, as they spend most time on waiting.

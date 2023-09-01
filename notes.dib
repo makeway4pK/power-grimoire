@@ -8,6 +8,18 @@
 
 #!markdown
 
+- [ ] figure out runspace debug/verbose output, other that `&{}*>&1`
+
+#!markdown
+
+- [ ] add b64 icon to wadb ack notif
+
+#!markdown
+
+- [ ] use `adb pull -a` and `adb push --sync`
+
+#!markdown
+
 - [ ] Look up Splatting in detail
 
 #!markdown

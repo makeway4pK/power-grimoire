@@ -137,7 +137,7 @@ function Start-Warmup {
 
 "Attempting adb" | NogThis
 # better make your own bridges
-$sns = &"$env:OneDrive/Documents/Scripts/stable/Wadb.ps1" -Quiet $adbPortNum -QNoDisconnect -QNoAck -QoutSerials
+$sns = &"$env:OneDrive/Documents/Scripts/stable/Wadb.ps1" $adbPortNum -SerialOut
 foreach ($sn in $sns) { (-split $sn)[1] | LogThis }   
 $order = Get-Plan $sns
 # 'dbg: $order='*>>"warmuplog.txt"

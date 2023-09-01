@@ -1,57 +1,15 @@
 param(
-	[switch] $Quiet,
 	[string] $Port,
-	[switch] $QNoDisconnect,
-	[switch] $QNoAck,
-	[switch] $QOutSerials
+	[switch] $NoGreeting,
+	[switch] $SerialOut
 )
-. ./cfgMan.ps1 -get 'macStoreXml'
-$macStoreXml = "$PSScriptRoot/../caches/WadbMacStore.xml"
 function Wadb {
-	do { adb start-server }while ($? -eq $false)
-	if ($Quiet) {
-		QuietWadb $Port
-		return
+	if (!(Get-Process -ErrorAction Ignore adb)) {
+		do { adb start-server }
+		while ($? -eq $false)
 	}
-	else {
-		# Clear-Host
-		"Port `n"
-		$portNumStr = getPortNumber
-	}
-	$engaged = $true
-	$cout = ''
-	$portNumStr
-	do {
-		Clear-Host
-		',------------,'
-		'|    Wadb    |'
-		'"------------"'
-		adb devices -l
-		''
-		' Use "Connect" to connect a known device'
-		' Use "Find" to try connecting all devices'
-		'available on the network with dynamic IP addresses'
-		'and also remember those devices for future.'
-		if ($cout.Length -ne 0) { [string]::new('_', 80) } else { '' }
-		$cout
-		''
-		'  5 - Connect'
-		'  8 - Find'
-		''
-		'  7 - Forget some'
-		$cin = $Host.UI.RawUI.ReadKey().Character.ToUInt16($null) - 48
-		switch ($cin) {
-			0 { $engaged = $false }
-			5 {
-				$cout = Connect
-			}
-			8 {
-				$cout = Find
-			}
-			7 { Forget }
-			Default { $cout = 'Invalid choice, try again! Numbers only' }
-		}
-	} while ($engaged)
+	Wadb-Async $Port
+	return
 }
 function isValidPortNum {
 	param(
@@ -59,193 +17,380 @@ function isValidPortNum {
 	)
 	$portNum = [uint16]$portNumStr
 	if ($portNum -lt 1024 -OR $portNum -gt 65535) {
-		# -OR ($portNum -gt )) 
+		# -OR ($portNum -gt ))
 		return $false
 	}return $true
 }
-function getPortNumber {
-	[string] $portNumStr = $null
-	$reset = $true
+class RunspaceThread {
+	hidden [powershell]$shell
+	hidden [System.IAsyncResult]$handle
+	[bool]$IsOutputProcessed = $false
+	hidden [System.Management.Automation.PSDataCollection[PSObject]]$Output
+
+	[bool]IsRunning() { return $this.handle -and -not $this.handle.IsCompleted }
+	[bool]IsOutputReady() { return -not $this.IsRunning() -and -not $this.IsOutputProcessed }
+	[RunspaceThread]SetShell([powershell]$shell) {
+		$this.shell = $shell
+		return $this
+	}
+	[RunspaceThread]SetPool([System.Management.Automation.Runspaces.RunspacePool]$rsp) {
+		if ($rsp.RunspacePoolStateInfo.State -eq 'BeforeOpen') { $rsp.Open() }
+		if ($rsp.RunspacePoolStateInfo.State -eq 'Opened') { $this.shell.RunspacePool = $rsp }
+		else { throw "RunspacePool couldn't be opened, it was in state: " + $rsp.RunspacePoolStateInfo.State }
+		return $this
+	}
+	[RunspaceThread]BeginInvoke() {
+		$this.handle = $this.shell.BeginInvoke()
+		return $this
+	}
+	[RunspaceThread]InvokeAsyncOutput() {
+		$this.Output = [System.Management.Automation.PSDataCollection[PSObject]]::new()
+		$this.handle = $this.shell.BeginInvoke($this.Output, $this.Output)
+		return $this
+	}
+	[System.Management.Automation.PSDataCollection[PSObject]]GetAsyncOutput() {
+		if ($this.IsOutputReady) { $this.IsOutputProcessed = $true }
+		return $this.Output
+	}
+	[System.Management.Automation.PSDataCollection[PSObject]]EndInvoke() {
+		$this.shell.EndInvoke($this.handle)
+		$this.IsOutputProcessed = $true
+		return $this.Output
+	}
+	Dispose() { $this.shell.Dispose() }
+}
+function ConnectOld([string[]]$ips, [string]$port) {
+	if ($ips.count -eq 0) { return }
+	
+	$script = { param($ip)
+		adb connect $ip
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
+	$threads += foreach ($ip in $ips) {
+		$ip += ':' + $port
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('ip', $ip )).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
 	do {
-		$cin = $Host.UI.RawUI.ReadKey().Character.ToUInt16($null) - 48
-		$reset = ($cin -lt 0 -OR $cin -gt 9)
-		if ($reset) {
-			$portNumStr = $null
-			Clear-Host
-		}
-		else {
-			$portNumStr += $cin.ToString()
-		}
-		if ($portNumStr.Length -eq 5) {
-			if (isValidPortNum $portNumStr) { }else {
-				$reset = $true
-				$portNumStr = ''
-				Clear-Host
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$output = $thr.GetAsyncOutput()
+			if ($output -match 'connected to') {
+				$output.split()[-1]
 			}
+			$thr.Dispose()
 		}
-	} while ($portNumStr.Length -lt 5)
-	return $portNumStr
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
 }
-function Connect {
-	if (!(Test-Path $macStoreXml)) { return "Can't remember any devices, find some!" }
-	$devices = Import-Clixml $macStoreXml
-	if ($devices.count -eq 0) { return "Can't remember any devices, find some!" }
-	$macs = [array]$devices.Keys
-	$ips = @()
-	$arp = @()
-	$arp += arp -a
-	foreach ($mac in $macs) {
-		$ip = -split ($arp -match $mac)
-		$ip = $ip -match '(\d+\.)+(\d+)'
-		if ($ip.count -gt 0) { $ips += $ip[0] }
+function GetProcedure-ConnectOld() {
+	return {
+		#  param($ip)
+		$output = adb connect $ip
+		if ($output -match 'connected to') {
+			$output.split()[-1]
+		}
+		return
 	}
-	$jobs = @()
-	if ($ips.count -eq 0) { return "No known devices available." }
-	foreach ($ip in $ips) {
-		$ip += ':' + $portNumStr
-		$jobs += Start-Job { adb connect $Using:ip }
-	}
-	if ($jobs | Where-Object -Property 'State' -eq Running) {
-		$ConnectOutput = ($jobs | Wait-Job  -Timeout 1) | Receive-Job
-	}
-	$jobs | Remove-Jobove-Job -Force
-	if ([bool]($ConnectOutput -match 'connected to ')) {
-		return $ConnectOutput
-	}
-	return "Connection refused by known devices.`n" + $ConnectOutput
 }
-function Find {
-	if (Test-Path $macStoreXml) { $devices = Import-Clixml $macStoreXml }else {
-		$devices = @{ }
+function Greet([string[]]$sns) {
+	if ($sns.count -eq 0) { return }
+	
+	$script = { param($sn)
+		$txt = adb devices -l
+		$txt = $txt -match $sn
+		# return if no match for given ip
+		if (!$txt) { return }
+		
+		# split line into tokens
+		$txt = $txt.foreach({ , -split $_ })
+		# in case there are multiple entries from, say, stale ports,
+		# select the one with 'device' status
+		$txt = $txt.where({ $_ -eq 'device' }, 'First')[0]
+		# return if no device is ready for commands
+		if (!$txt) { return }
+		
+		# connection confirmed
+		# extract model field as name of the device
+		$name = -split $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
+		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
+		# serial number will be the 1st field
+		$sn = $txt[0]
+		# send Greet notif
+		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbGreeting "'Hello, $name !'"
+		$sn #output
 	}
-	$ips = @()
-	$arp = @()
-	$arp += arp -a
-	$ips = -split ($arp -match 'dynamic')
-	$ips = $ips -match '(\d+\.)+(\d+)'
-	if ($ips.count -eq 0) { return 'No devices available.' }
-	$FindOutput = @()
-	$FoundIPs = @()
-	$jobs = @()
-	foreach ($ip in $ips) {
-		$ip += ':' + $portNumStr
-		$jobs += Start-Job { adb connect $Using:ip }
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
+	$threads += foreach ($sn in $sns) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('sn', $sn)).
+		SetPool($rsp).
+		InvokeAsyncOutput()
 	}
-	if ($jobs | Where-Object -Property 'State' -eq Running) {
-		$FindOutput += ($jobs | Wait-Job -Timeout 1) | Receive-Job 
-	}
-	$jobs | Remove-Job -Force
-	$FoundIPs = $FindOutput -match 'connected to'
-	$FoundIPs = -split $FoundIPs -split ':' -match '(\d+\.)+(\d+)'
-	if ($FoundIPs.count -eq 0) { return "Connection refused by all available devices.`n" + $FindOutput }
-	foreach ($ip in $FoundIPs) {
-		#success
-		$mac = (( -split ($arp -match $ip)) -match '([\dabcdef]+-)+([\dabcdef])')[0]
-		$model = (adb devices -l) -match $ip
-		$model = -split $model
-		$model = $model -match 'model:'
-		$model = ($model -split ':')[1]
-		$devices[$mac] = $model
-	}
-	$devices | Export-Clixml $macStoreXml
-	return $FindOutput	
-}
-function Forget {
-	if (Test-Path $macStoreXml) { $devices = Import-Clixml $macStoreXml }
-	$forgetOut = ''
 	do {
-		Clear-Host
-		',------------,'
-		'|    Wadb    |'
-		'"------------"'
-		if ($devices.count -eq 0) { "Can't remember any devices, find some!" }else {
-			$ctr = 1
-			foreach ($device in $devices.getenumerator()) {
-				' ' + $ctr + "`t" + $device.Name + "`t" + $device.Value
-				$ctr++
-			}
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$thr.GetAsyncOutput()
+			$thr.Dispose()
 		}
-		''
-		'  Enter the number to forget that device'
-		if ($forgetOut.Length -ne 0) { [string]::new('_', 80) } else { '' }
-		$forgetOut
-		if ($devices.count -lt 10) {
-			$forgetChoice = $Host.UI.RawUI.ReadKey().Character.ToUInt16($null) - 48
-		}
-		else {
-			$forgetChoice = (Read-Host).ToUInt16($null)
-		}
-		if ($forgetChoice -eq 0) { return }
-		if ($forgetChoice -gt $devices.count -OR $forgetChoice -lt 0) { $forgetOut = 'Invalid choice! Choose between [1 - ' + $devices.count + ']' } else {
-			$forgetChoice--
-			$forgetOut = "Forgot`t" + ([array]$devices.Keys)[$forgetChoice] + "`t" + $devices[([array]$devices.Keys)[$forgetChoice]]
-			$devices.Remove(([array]$devices.Keys)[$forgetChoice])
-			$devices | Export-Clixml $macStoreXml
-		}
-	} while ($true)
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
+}
+function GetProcedure-Greet {
+	return {
+		#  param($sn)
+		$sn = $ip
+		$txt = adb devices -l
+		$txt = $txt -match $sn
+		# return if no match for given ip
+		if (!$txt) { return }
+		
+		# split line into tokens
+		$txt = $txt.foreach({ , -split $_ })
+		# in case there are multiple entries from, say, stale ports,
+		# select the one with 'device' status
+		$txt = $txt.where({ $_ -eq 'device' }, 'First')[0]
+		# return if no device is ready for commands
+		if (!$txt) { return }
+		
+		# connection confirmed
+		# extract model field as name of the device
+		$name = -split $txt -match 'model' -split ':' -replace '[^a-z0-9]', ' '
+		$name = (Get-culture).TextInfo.ToTitleCase($name[1].toLower())
+		# serial number will be the 1st field
+		$sn = $txt[0]
+		# send Greet notif
+		$null = adb -s $sn shell cmd notification post -t "'ADB connected'" WadbGreeting "'Hello, $name !'"
+		$ip = $sn #output
+	}
 }
 function QuietWadb {
 	param(
-		[string] $preferedPortNumStr
+		[string] $port
 	)
-	if (!(isValidPortNum $preferedPortNumStr)) { return }
-	
-	$portNumStr = '5555'
-	$null = Find
-	$portNumStr = $preferedPortNumStr
-	
-	# asserting $preferedPortNumStr on all devices
-	$sns = adb devices -l
-	$temp = $sns[1..$sns.count] | Where-Object { $_.length -ne 0 }
-	$sns = @()
-	foreach ($sn in $temp) { $sns += , (-split $sn)[0] }
-	$jobs = @()
-	foreach ($sn in $sns) {
-		$jobs += Start-Job {
-			adb -s $Using:sn tcpip $Using:portNumStr
-		}
-	}
-	if ($jobs | Where-Object -Property 'State' -eq Running) {
-		$jobs | Wait-Job | Remove-Job -Force
-	}
-	$null = Find
-	
-	$sns = adb devices -l
-	# $sns = $sns -match $portNumStr
-	$temp = $sns[1..$sns.count] | Where-Object { $_.length -ne 0 }
-	$sns = @()
-	foreach ($sn in $temp) {
-		$temp = -split $sn      
-		$sns += , ($temp[0], ($temp -match 'device:' -split ':')[1])
-	}
-	if (!($QNoDisconnect)) {
-		adb disconnect | Out-Null
-	}
-	$jobs = @()
+	if (!(isValidPortNum $port)) { return }
 
-	foreach ($sn in $sns) {
-		$sn, $dn = $sn
-		$jobs += Start-Job {
-			adb connect $Using:sn | Out-Null
-			if (!(adb devices -l) -match ($Using:sn)[0]) { return }
-			adb -s $Using:sn wait-for-device
-			
-			"$Using:sn $Using:dn" # for serials output
-			if (!($Using:QNoAck)) {
-				adb -s $Using:sn shell input keyevent HOME
-				adb -s $Using:sn shell input keyevent BACK
-				adb -s $Using:sn shell input keyevent BACK
-				adb -s $Using:sn shell 'input text \>'
-				adb -s $Using:sn shell input text Hello\ $Using:dn\ \ !
+	$reachableIPs = Get-ReachableIPs
+	$connectedSNs = ConnectOld $reachableIPs $port
+	$Greetd = Greet $connectedSNs
+	$Greetd
+	
+	$connectedIPs = $connectedSNs.foreach({ ($_ -split ':')[0] })
+	$switchPortIps = $reachableIps.where({ $_ -notin $connectedIPs })
+	$connected2 = ConnectNew $switchPortIps $port
+	$Greetd = Greet $connected2
+	$Greetd
+}
+
+function Wadb-Async {
+	$arpOut = arp -a
+	$ifLines = $arpOut | sls 'Interface.*?(((\d+\.){3})\d+).*?(0x.*)$'
+	$Subnets = @()
+	$ifIndexes = @()
+	$selfIPs = @()
+	foreach ($line in $ifLines) {
+		$Subnets += $line.Matches.Groups[2].Value
+		$selfIPs += $line.Matches.Groups[1].Value
+		$ifIndexes += $line.Matches.Groups[4].Value
+	}
+	$foundIPs = @()
+	$foundIPs += foreach ($i in $ifIndexes) {
+		foreach ($neighbour in Get-NetNeighbor -InterfaceIndex $i -AddressFamily IPv4) {
+			if (@('Permanent', 'Unreachable') -cnotcontains $neighbour.State) {
+				$neighbour.IPAddress
 			}
 		}
 	}
-	while ($jobs | Where-Object -Property 'State' -eq Running) {
-		$sns = $jobs | Wait-Job -Any | Receive-Job
-		if ($QOutSerials) { $sns }
+	
+	$Procedure = [string](GetProcedure-Connect)
+	if (!$NoGreeting) {
+		$Procedure += "`n" + [string](GetProcedure-Greet)
 	}
-	$jobs | Remove-Job -Force
+	$Procedure += "`n`$ip" #output
+	
+	# create threads to connect to found ips, input iplist and port
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $Subnets.count * 254)
+	$threads = @()
+	$threads += foreach ($ip in $foundIPs) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript([scriptblock]::Create('param($ip,$port)' + "`n" + $Procedure)).
+			AddParameters(@{'ip' = $ip; 'port' = $Port })).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
+	
+	# Add Pingscan procedure to connect previous procedure
+	$Procedure = [string](GetProcedure-Pingscan) + "`n" + $Procedure
+	# Prepare Pingscan candidates
+	$dontPingIPs = $selfIPs + $foundIPs
+	$PingsCandidates = @()
+	$PingsCandidates += foreach ($mask in $Subnets) {
+		foreach ($octet in 1..254) {
+			$ip = $mask + $octet
+			if ($dontPingIPs -cnotcontains $ip) { $ip }
+		}
+	}
+	
+	# create threads to pingscan & connect ips, and read output from completed threads in same loop
+	$i = 0
+	$BatchSize = 50
+	do {
+		if ($SerialOut) {
+			foreach ($thr in $threads | ? {
+					$_.IsOutputReady() }) {
+				$thr.GetAsyncOutput() #output
+				$thr.Dispose()
+			}
+		}
+		if ($i -gt $PingsCandidates.Count) { continue }
+		$threads += foreach ($ip in $PingsCandidates[$i..($i + $BatchSize)]) {
+			[RunspaceThread]::new().
+			SetShell([powershell]::Create().
+				AddScript([scriptblock]::Create('param($ip,$port)' + "`n" + $Procedure)).
+				AddParameters(@{'ip' = $ip; 'port' = $Port })).
+			SetPool($rsp).
+			InvokeAsyncOutput()
+		}
+		$i += $BatchSize + 1
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
+	if (!$SerialOut) {
+		foreach ($thr in $threads) { $thr.Dispose() }
+	}
 }
+
+function ConnectNew([string[]]$ips, [string]$port) {
+	if (!$ips.count) { return }
+	$script = { param($ip, $port)
+		# attempt connection with default port
+		if ((adb connect $ip) -notmatch 'connected to') { return }
+		
+		# send tcpip cmd to switch adbd to preferred port
+		$null = adb -s $ip`:5555 tcpip $port
+		# connect to the newly opened port
+		$null = adb connect $ip`:$port
+		# confirm connection
+		$confirm = (adb devices) -match $ip
+		$confirm = -split $confirm
+		if ($confirm[1] -eq 'device') {
+			$confirm[0] #output
+		}
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $ips.count)
+	$threads = @()
+	$threads += foreach ($ip in $ips) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameters(@{'ip' = $ip; 'port' = $port })).
+		SetPool($rsp).
+		InvokeAsyncOutput()
+	}
+	do {
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$thr.GetAsyncOutput()
+			$thr.Dispose()
+		}
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
+}
+function GetProcedure-Connect {
+	return {
+		#  param($ip, $port)
+		if ((adb connect $ip`:$port) -notmatch 'connected to') {
+			# attempt connection with default port
+			if ((adb connect $ip) -notmatch 'connected to') { return }
+			# send tcpip cmd to switch adbd to preferred port
+			$null = adb -s $ip`:5555 tcpip $port
+			# connect to the newly opened port
+			$null = adb connect $ip`:$port
+		}
+		# confirm connection
+		$confirm = (adb devices) -match $ip
+		$confirm = -split $confirm
+		if ($confirm[1] -ne 'device') { return }
+		$ip = $confirm[0] #output
+	}
+}
+
+function Get-ReachableIPs {
+	$arpOut = arp -a
+	$ifLines = $arpOut | sls 'Interface.*?(((\d+\.){3})\d+).*?(0x.*)$'
+	$Subnets = @()
+	$ifIndexes = @()
+	$selfIPs = @()
+	foreach ($line in $ifLines) {
+		$Subnets += $line.Matches.Groups[2].Value
+		$selfIPs += $line.Matches.Groups[1].Value
+		$ifIndexes += $line.Matches.Groups[4].Value
+	}
+	$foundIPs = @()
+	$foundIPs += foreach ($i in $ifIndexes) {
+		foreach ($neighbour in Get-NetNeighbor -InterfaceIndex $i -AddressFamily IPv4) {
+			if (@('Permanent', 'Unreachable') -cnotcontains $neighbour.State) {
+				$neighbour.IPAddress
+			}
+		}
+	}
+	$foundIPs #Output
+
+	$dontPingIPs = $selfIPs + $foundIPs
+	$toPingIPs = @()
+	$toPingIPs += foreach ($mask in $Subnets) {
+		foreach ($octet in 1..254) {
+			$ip = $mask + $octet
+			if ($dontPingIPs -cnotcontains $ip) { $ip }
+		}
+	}
+
+	$script = { param($ip)
+		$timeout = 1
+		$tries = 1
+		while ($tries--) {
+			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
+		}
+		if ($tries -gt -1) { $ip }
+	}
+	$rsp = [runspacefactory]::CreateRunspacePool(1, $toPingIPs.count)
+	$threads = @()
+	$threads += foreach ($ip in $toPingIPs) {
+		[RunspaceThread]::new().
+		SetShell([powershell]::Create().
+			AddScript($script).
+			AddParameter('ip', $ip)).
+		SetPool($rsp).InvokeAsyncOutput()
+	}
+	do {
+		foreach ($thr in $threads | ? {
+				$_.IsOutputReady() }) {
+			$thr.GetAsyncOutput() #Output
+			$thr.Dispose()
+		}
+	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
+	$rsp.Close()
+}
+function GetProcedure-Pingscan {
+	return {
+		#  param($ip)
+		$timeout = 2
+		$tries = 2
+		while ($tries--) {
+			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
+		}
+		if ($tries -lt 0) { return }
+	}
+}
+
 Wadb
 Get-Job | Remove-Job -Force
 
