@@ -60,6 +60,20 @@ For unreliability, gotta debug it after using runspaces to make sure it isn't ju
 
 #!markdown
 
+- [ ] could it be possible to return wadb routine even before all pingscan are finished? by returning a promise object that gets filled by a thread(s) in the background.
+	- will need a loop to collect output and dispose threads, this will have to be in a thread of its own thus we'll need
+	- a live object to collect the output
+
+#!markdown
+
+- [ ] cleanup
+	- [ ] aliases subst.n
+	- [ ] loops micropt.n
+	- [ ] other micropt.n
+	- [ ] unused functions
+
+#!markdown
+
 - [x] find out how to get output from runspaces before completion  
 		it waits for the instance to complete, blocking the current thread
 
