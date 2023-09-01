@@ -1,7 +1,7 @@
 param(
 	[string] $Port,
 	[switch] $NoGreeting,
-	[switch] $PassSerials
+	[switch] $SerialOut
 )
 function Wadb {
 	if (!(Get-Process -ErrorAction Ignore adb)) {
@@ -244,7 +244,7 @@ function Wadb-Async {
 	$i = 0
 	$BatchSize = 50
 	do {
-		if ($PassSerials) {
+		if ($SerialOut) {
 			foreach ($thr in $threads | ? {
 					$_.IsOutputReady() }) {
 				$thr.GetAsyncOutput() #output
@@ -263,7 +263,7 @@ function Wadb-Async {
 		$i += $BatchSize + 1
 	}while ($threads.where({ $_.IsRunning() }) -and -not (Start-Sleep -Milliseconds 100) )
 	$rsp.Close()
-	if (!$PassSerials) {
+	if (!$SerialOut) {
 		foreach ($thr in $threads) { $thr.Dispose() }
 	}
 }
