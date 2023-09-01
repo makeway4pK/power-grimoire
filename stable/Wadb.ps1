@@ -8,7 +8,7 @@ function Wadb {
 		do { adb start-server }
 		while ($? -eq $false)
 	}
-	QuietWadb $Port
+	Wadb-Async $Port
 	return
 }
 function isValidPortNum {
@@ -214,6 +214,7 @@ function Wadb-Async {
 	if (!$NoGreeting) {
 		$Procedure += "`n" + [string](GetProcedure-Greet)
 	}
+	$Procedure += "`n`$ip" #output
 	
 	# create threads to connect to found ips, input iplist and port
 	$rsp = [runspacefactory]::CreateRunspacePool(1, $Subnets.count * 254)
