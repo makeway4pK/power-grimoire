@@ -382,8 +382,8 @@ function Get-ReachableIPs {
 function GetProcedure-Pingscan {
 	return {
 		#  param($ip)
-		$timeout = 1
-		$tries = 1
+		$timeout = 2
+		$tries = 2
 		while ($tries--) {
 			if (Test-Connection $ip -Quiet -Delay $timeout -Count 1) { break }
 		}
