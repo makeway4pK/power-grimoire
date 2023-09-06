@@ -1,12 +1,14 @@
 param(
 	[string] $Port,
+	[switch] $NoPingscan,
 	[switch] $NoGreeting,
 	[switch] $SerialOut
 )
 function Wadb {
 	if (!(Get-Process -ErrorAction Ignore adb)) {
+		$tries = 3
 		do { adb start-server }
-		while ($? -eq $false)
+		while ($? -eq $false -and $tries-- -and -not (Start-Sleep -Milliseconds 500))
 	}
 	Wadb-Async $Port
 	return
@@ -191,6 +193,8 @@ function QuietWadb {
 }
 
 function Wadb-Async {
+	if (!(isValidPortNum $port)) { return }
+	
 	$arpOut = arp -a
 	$ifLines = $arpOut | sls 'Interface.*?(((\d+\.){3})\d+).*?(0x.*)$'
 	$Subnets = @()
@@ -228,15 +232,17 @@ function Wadb-Async {
 		InvokeAsyncOutput()
 	}
 	
-	# Add Pingscan procedure to connect previous procedure
-	$Procedure = [string](GetProcedure-Pingscan) + "`n" + $Procedure
-	# Prepare Pingscan candidates
-	$dontPingIPs = $selfIPs + $foundIPs
-	$PingsCandidates = @()
-	$PingsCandidates += foreach ($mask in $Subnets) {
-		foreach ($octet in 1..254) {
-			$ip = $mask + $octet
-			if ($dontPingIPs -cnotcontains $ip) { $ip }
+	if (-not $NoPingscan) {
+		# Add Pingscan procedure to previous connect procedure
+		$Procedure = [string](GetProcedure-Pingscan) + "`n" + $Procedure
+		# Prepare Pingscan candidates
+		$dontPingIPs = $selfIPs + $foundIPs
+		$PingsCandidates = @()
+		$PingsCandidates += foreach ($mask in $Subnets) {
+			foreach ($octet in 1..254) {
+				$ip = $mask + $octet
+				if ($dontPingIPs -cnotcontains $ip) { $ip }
+			}
 		}
 	}
 	
@@ -251,7 +257,7 @@ function Wadb-Async {
 				$thr.Dispose()
 			}
 		}
-		if ($i -gt $PingsCandidates.Count) { continue }
+		if ($PingsCandidates.Count -eq 0 -or $i -gt $PingsCandidates.Count) { continue }
 		$threads += foreach ($ip in $PingsCandidates[$i..($i + $BatchSize)]) {
 			[RunspaceThread]::new().
 			SetShell([powershell]::Create().
