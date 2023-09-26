@@ -10,10 +10,35 @@ $win_wait = 5
 $toHide_WinsCount = 2
 
 
-if (!$steam_path) { exit }
+if (-not $steam_path) { exit }
 $proc_name = 'steamwebhelper'
-if (!$appnames) { exit }
+if (-not $appnames) { exit }
+function Main {
+	$userID = Get-SteamUser
+	if (-not $userID) {
+		"No Steam user found, aborting"
+		exit
+	}
+	$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
+	$add = Get-appIDs-fromShortcuts.vdf ($userID)
+	foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
 
+	# Finally, launch apps
+	$notFound = @()
+	[bool]$anyLaunched = $false
+	foreach ($app in $appnames) {
+		if ($pairs[$app]) {
+			Start-Process "steam://rungameid/$($pairs[$app])" 
+			$anyLaunched = $anyLaunched -or $?
+		}
+		else { $notFound += $app }
+	}
+	if ($notFound.count -ne 0) {
+		"'$($notFound-join"', '")' were not found in these appnames:`n"
+		$pairs
+	}
+	if ($anyLaunched) { Keep-Steam-Minimized }
+}
 function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
@@ -149,27 +174,4 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	return $pairs
 }
 
-$userID = Get-SteamUser
-if (-not $userID) {
-	"No Steam user found, aborting"
-	exit
-}
-$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
-$add = Get-appIDs-fromShortcuts.vdf ($userID)
-foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
-
-# Finally, launch apps
-$notFound = @()
-[bool]$anyLaunched = $false
-foreach ($app in $appnames) {
-	if ($pairs[$app]) {
-		Start-Process "steam://rungameid/$($pairs[$app])" 
-		$anyLaunched = $anyLaunched -or $?
-	}
-	else { $notFound += $app }
-}
-if ($notFound.count -ne 0) {
-	"'$($notFound-join"', '")' were not found in these appnames:`n"
-	$pairs
-}
-if ($anyLaunched) { Keep-Steam-Minimized }
+Main
