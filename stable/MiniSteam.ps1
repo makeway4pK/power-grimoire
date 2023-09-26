@@ -14,9 +14,7 @@ if (!$steam_path) { exit }
 $proc_name = 'steamwebhelper'
 if (!$appnames) { exit }
 
-function Launch-Steam-Minimized {
-	Start-Process ($steam_path + "/steam.exe")
-	if (!$?) { return $false } # if launch failed
+function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
 	# wait for process and window handle
@@ -151,14 +149,6 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	return $pairs
 }
 
-# if not running, launch and minimize Steam
-if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
-	if (-not (Launch-Steam-Minimized) ) {
-		'Launch failed' | Write-Verbose
-		exit
-	}
-} # Steam must be running if control is here
-
 $userID = Get-SteamUser
 if (-not $userID) {
 	"No Steam user found, aborting"
@@ -170,11 +160,16 @@ foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
 
 # Finally, launch apps
 $notFound = @()
+[bool]$anyLaunched = $false
 foreach ($app in $appnames) {
-	if ($pairs[$app]) { Start-Process "steam://rungameid/$($pairs[$app])" }
+	if ($pairs[$app]) {
+		Start-Process "steam://rungameid/$($pairs[$app])" 
+		$anyLaunched = $anyLaunched -or $?
+	}
 	else { $notFound += $app }
 }
 if ($notFound.count -ne 0) {
 	"'$($notFound-join"', '")' were not found in these appnames:`n"
 	$pairs
 }
+if ($anyLaunched) { Keep-Steam-Minimized }
