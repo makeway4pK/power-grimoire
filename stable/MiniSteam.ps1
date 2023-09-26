@@ -46,7 +46,22 @@ function Get-SteamUser {
 	$SteamID3 = reg query HKCU\Software\Valve\Steam\ActiveProcess
 	$SteamID3 = $SteamID3 -match 'ActiveUser' -split ' ' -match '0x'
 	$SteamID3 = [uint32]$SteamID3[0]
-	return $SteamID3
+	if ($SteamID3) { return $SteamID3 }
+	"Active user not found in registry" | Write-Verbose
+	
+	$SteamID3s = (Get-ChildItem "$steam_path/userdata").BaseName
+	if ($SteamID3s.count -eq 0) { return 0 }
+	if ($SteamID3s.count -eq 1) { return $SteamID3s }
+	$last_ID3 = 0
+	$last_time = [System.DateTime]::new('')
+	foreach ($ID3 in $SteamID3s) {
+		$time = (gi "$steam_path/userdata/$ID3/config").LastWriteTime
+		if ($time -gt $last_time) {
+			$last_ID3 = $ID3
+			$last_time = $time
+		}
+	}
+	return $last_ID3
 }
 function Get-appIDs-fromScreenshots.vdf($userID) {
 	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
@@ -145,6 +160,10 @@ if (!(Get-Process -ErrorAction Ignore $proc_name)) {
 } # Steam must be running if control is here
 
 $userID = Get-SteamUser
+if (-not $userID) {
+	"No Steam user found, aborting"
+	exit
+}
 $pairs = Get-appIDs-fromScreenshots.vdf ($userID)
 $add = Get-appIDs-fromShortcuts.vdf ($userID)
 foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
