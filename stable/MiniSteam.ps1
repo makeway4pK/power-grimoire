@@ -10,13 +10,41 @@ $win_wait = 5
 $toHide_WinsCount = 2
 
 
-if (!$steam_path) { exit }
+if (-not $steam_path) { exit }
 $proc_name = 'steamwebhelper'
-if (!$appnames) { exit }
+if (-not $appnames) { exit }
+function Main {
+	$userID = Get-SteamUser
+	if (-not $userID) {
+		"No Steam user found, aborting"
+		exit
+	}
+	$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
+	$add = Get-appIDs-fromShortcuts.vdf ($userID)
+	foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
 
-function Launch-Steam-Minimized {
-	Start-Process ($steam_path + "/steam.exe")
-	if (!$?) { return $false } # if launch failed
+	# Finally, launch apps
+	$notFound = @()
+	[bool]$anyLaunched = $false
+	foreach ($app in $appnames) {
+		if ($pairs[$app]) {
+			Start-Process "steam://rungameid/$($pairs[$app])" 
+			$anyLaunched = $anyLaunched -or $?
+		}
+		else { $notFound += $app }
+	}
+	if ($notFound.count -ne 0) {
+		"'$($notFound-join"', '")' were not found in these appnames:`n"
+		$pairs
+	}
+	if ($anyLaunched) { 
+		net session 2>&1>$null
+		if ($?) { Keep-Steam-Minimized } else {
+			"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
+		}
+	}
+}
+function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
 	# wait for process and window handle
@@ -46,7 +74,22 @@ function Get-SteamUser {
 	$SteamID3 = reg query HKCU\Software\Valve\Steam\ActiveProcess
 	$SteamID3 = $SteamID3 -match 'ActiveUser' -split ' ' -match '0x'
 	$SteamID3 = [uint32]$SteamID3[0]
-	return $SteamID3
+	if ($SteamID3) { return $SteamID3 }
+	"Active user not found in registry" | Write-Verbose
+	
+	$SteamID3s = (Get-ChildItem "$steam_path/userdata").BaseName
+	if ($SteamID3s.count -eq 0) { return 0 }
+	if ($SteamID3s.count -eq 1) { return $SteamID3s }
+	$last_ID3 = 0
+	$last_time = [System.DateTime]::new('')
+	foreach ($ID3 in $SteamID3s) {
+		$time = (Get-Item "$steam_path/userdata/$ID3/config").LastWriteTime
+		if ($time -gt $last_time) {
+			$last_ID3 = $ID3
+			$last_time = $time
+		}
+	}
+	return $last_ID3
 }
 function Get-appIDs-fromScreenshots.vdf($userID) {
 	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
@@ -136,26 +179,4 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	return $pairs
 }
 
-# if not running, launch and minimize Steam
-if (!(Get-Process -ErrorAction Ignore $proc_name)) { 
-	if (-not (Launch-Steam-Minimized) ) {
-		'Launch failed' | Write-Verbose
-		exit
-	}
-} # Steam must be running if control is here
-
-$userID = Get-SteamUser
-$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
-$add = Get-appIDs-fromShortcuts.vdf ($userID)
-foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
-
-# Finally, launch apps
-$notFound = @()
-foreach ($app in $appnames) {
-	if ($pairs[$app]) { Start-Process "steam://rungameid/$($pairs[$app])" }
-	else { $notFound += $app }
-}
-if ($notFound.count -ne 0) {
-	"'$($notFound-join"', '")' were not found in these appnames:`n"
-	$pairs
-}
+Main
