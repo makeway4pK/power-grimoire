@@ -55,7 +55,7 @@ function Get-SteamUser {
 	$last_ID3 = 0
 	$last_time = [System.DateTime]::new('')
 	foreach ($ID3 in $SteamID3s) {
-		$time = (gi "$steam_path/userdata/$ID3/config").LastWriteTime
+		$time = (Get-Item "$steam_path/userdata/$ID3/config").LastWriteTime
 		if ($time -gt $last_time) {
 			$last_ID3 = $ID3
 			$last_time = $time
