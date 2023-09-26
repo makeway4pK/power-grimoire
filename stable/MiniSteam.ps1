@@ -37,7 +37,12 @@ function Main {
 		"'$($notFound-join"', '")' were not found in these appnames:`n"
 		$pairs
 	}
-	if ($anyLaunched) { Keep-Steam-Minimized }
+	if ($anyLaunched) { 
+		net session 2>&1>$null
+		if ($?) { Keep-Steam-Minimized } else {
+			"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
+		}
+	}
 }
 function Keep-Steam-Minimized {
 	
