@@ -1,0 +1,10 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+- `cmd notif~ post --style bigpicture --picture data:base64,<>`
+	- online converted b64 didnt work
+	- powershell conversion works
+	- size limit, a little less than 20 kb, not mentioned anywhere
