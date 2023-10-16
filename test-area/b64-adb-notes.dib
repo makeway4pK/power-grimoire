@@ -4,7 +4,15 @@
 
 #!markdown
 
-- `cmd notif~ post --style bigpicture --picture data:base64,<>`
+- `cmd notif~ post --style bigpic~ --pic~ data:base64,<>`
 	- online converted b64 didnt work
 	- powershell conversion works
-	- size limit, a little less than 20 kb, not mentioned anywhere
+	- size limit, a little over 22 kb 30k chars in b64, not mentioned anywhere
+	- can go fast , 30pics in 4secs
+```powershell
+	$pics=@('test-area/Gmail.ico','test-area/Hackerrank.ico','test-area/Whatsapp.ico')
+	1..10|%{$pics|%{
+		$b64=[Convert]::ToBase64String((gc -Raw -Encoding Byte $_))
+		adb shell "cmd notification post --style bigpicture --picture data:base64,$b64 tag txt"
+	}}
+```
