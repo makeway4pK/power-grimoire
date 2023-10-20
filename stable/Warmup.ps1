@@ -110,7 +110,7 @@ function Get-Plan {
 	foreach ($line in $PlanOfWarmup) {
 		$line = ($line -split ':').trim()					# cleanup
 		if ($line[1] -eq "" -or $null -eq $line[0] ) { continue }	# skip lines with null inputs
-		$sorter[$line[0]] += $line[1]						# add to hashtable
+		$sorter[$line[0]] = $line[1]						# overwrite to hashtable
 	}
 	$sorter.GetEnumerator() | Sort-Object -Property Value | Out-Null # sort by user inputs
 	return $sorter
