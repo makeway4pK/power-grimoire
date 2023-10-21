@@ -16,3 +16,16 @@
 		adb shell "cmd notification post --style bigpicture --picture data:base64,$b64 tag txt"
 	}}
 ```
+
+#!markdown
+
+- screenshots:
+```powershell
+Add-Type -AssemblyName System.Drawing
+$b=[System.Drawing.Bitmap]::new(1920,1080)
+$g=[System.Drawing.Graphics]::FromImage($b)
+$r=[System.Drawing.Rectangle]::FromLTRB(0,0,1920,1080)
+$g.CopyFromScreen($r.Location,$r.Location,$r.Size)
+$b.Save("C:\Users\makeway4pK\Desktop\pic.jpg")
+```
+- TODO get display resolution, NOT scaled resolution or monitor resolution
