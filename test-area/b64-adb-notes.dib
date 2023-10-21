@@ -29,3 +29,9 @@ $g.CopyFromScreen($r.Location,$r.Location,$r.Size)
 $b.Save("C:\Users\makeway4pK\Desktop\pic.jpg")
 ```
 - TODO get display resolution, NOT scaled resolution or monitor resolution
+
+#!markdown
+
+- TODO resize bitmap
+- TODO find max safe size that doesn't go over 30k chars in b64
+- TODO try different imaging encoders with IO.MemoryStream
