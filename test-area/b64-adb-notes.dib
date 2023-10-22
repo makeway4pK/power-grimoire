@@ -7,7 +7,7 @@
 - `cmd notif~ post --style bigpic~ --pic~ data:base64,<>`
 	- online converted b64 didnt work
 	- powershell conversion works
-	- size limit, a little over 22 kb 30k chars in b64, not mentioned anywhere
+	- size limit, a little over 22 kb, 32328 - 32736 chars in b64, not mentioned anywhere
 	- can go fast , 30pics in 4secs
 ```powershell
 	$pics=@('test-area/Gmail.ico','test-area/Hackerrank.ico','test-area/Whatsapp.ico')
@@ -24,8 +24,7 @@
 Add-Type -AssemblyName System.Drawing
 $b=[System.Drawing.Bitmap]::new(1920,1080)
 $g=[System.Drawing.Graphics]::FromImage($b)
-$r=[System.Drawing.Rectangle]::FromLTRB(0,0,1920,1080)
-$g.CopyFromScreen($r.Location,$r.Location,$r.Size)
+$g.CopyFromScreen(0,0,0,0,$b.Size)
 $b.Save("C:\Users\makeway4pK\Desktop\pic.jpg")
 ```
 - TODO get display resolution, NOT scaled resolution or monitor resolution
@@ -35,3 +34,16 @@ $b.Save("C:\Users\makeway4pK\Desktop\pic.jpg")
 - TODO resize bitmap
 - TODO find max safe size that doesn't go over 30k chars in b64
 - TODO try different imaging encoders with IO.MemoryStream
+
+#!markdown
+
+## [poc success]()
+clips dump:
+```powershell
+$m=[System.IO.MemoryStream]::new();$s.save($m,$ici,$pams);($b64=[Convert]::ToBase64String($m.ToArray())).length
+$pams.Param[0]=[System.Drawing.Imaging.EncoderParameter]::new([System.Drawing.Imaging.Encoder]::Quality,55L)
+$s=[System.Drawing.Bitmap]::new($b,640,360)
+$g.CopyFromScreen(0,0,0,0,$b.size)
+$ici=$ici[1]
+$ici=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders()
+```
