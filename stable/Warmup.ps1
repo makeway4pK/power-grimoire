@@ -145,3 +145,4 @@ $order = Get-Plan $sns
 Push-Cuts $sns $order
 if (!($onlyPush)) { Start-Warmup $order }
 "Finished at:" | LogThis
+&"./test-area/miroor5.ps1"
