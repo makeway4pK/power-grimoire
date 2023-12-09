@@ -19,6 +19,19 @@
 
 #!markdown
 
+# [poc success]()
+clips dump:
+```powershell
+$m=[System.IO.MemoryStream]::new();$s.save($m,$ici,$pams);($b64=[Convert]::ToBase64String($m.ToArray())).length
+$pams.Param[0]=[System.Drawing.Imaging.EncoderParameter]::new([System.Drawing.Imaging.Encoder]::Quality,55L)
+$s=[System.Drawing.Bitmap]::new($b,640,360)
+$g.CopyFromScreen(0,0,0,0,$b.size)
+$ici=$ici[1]
+$ici=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders()
+```
+
+#!markdown
+
 - screenshots:
 ```powershell
 Add-Type -AssemblyName System.Drawing
@@ -31,19 +44,6 @@ $b.Save("C:\Users\makeway4pK\Desktop\pic.jpg")
 
 #!markdown
 
-- TODO resize bitmap
-- TODO find max safe size that doesn't go over 30k chars in b64
-- TODO try different imaging encoders with IO.MemoryStream
-
-#!markdown
-
-## [poc success]()
-clips dump:
-```powershell
-$m=[System.IO.MemoryStream]::new();$s.save($m,$ici,$pams);($b64=[Convert]::ToBase64String($m.ToArray())).length
-$pams.Param[0]=[System.Drawing.Imaging.EncoderParameter]::new([System.Drawing.Imaging.Encoder]::Quality,55L)
-$s=[System.Drawing.Bitmap]::new($b,640,360)
-$g.CopyFromScreen(0,0,0,0,$b.size)
-$ici=$ici[1]
-$ici=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders()
-```
+- ~~TODO resize bitmap~~
+- ~~TODO find max safe size that doesn't go over 30k chars in b64~~ 32.5k chars in b64
+- ~~TODO try different imaging encoders with IO.MemoryStream~~ jpeg is best, adjustable quality, best compression
