@@ -8,7 +8,8 @@
 
 #!markdown
 
-- [ ] add upgrades and adb serial param to miroor5
+- [ ] add b64 icon to wadb ack notif
+	- [x] ~~stream screen to device~~
 
 #!markdown
 
@@ -19,11 +20,12 @@
 
 #!markdown
 
-- [ ] figure out runspace debug/verbose output, other that `&{}*>&1`
+- [ ] add upgrades and adb serial param to miroor5
 
 #!markdown
 
-- [ ] add b64 icon to wadb ack notif
+- [ ] find
+ out runspace debug/verbose output, other than `&{ ... }*>&1`
 
 #!markdown
 
@@ -46,10 +48,10 @@
 #!markdown
 
 - [ ] pingscan and save results
-  - runs on every connection
+  - [x] ~~runs on every connection~~
   - saves result in cache
   - skips scan and retrieves cached result on subsequent calls
-  - option to force rescan
+  - [x] ~~option to force rescan~~
   - needs to be able to detect new connections (to rescan if new connections found)
   - option to force retrieve cached list
 
@@ -64,19 +66,15 @@
 
 #!markdown
 
-- [ ] use `adb shell cmd notification post -t`
-
-#!markdown
-
 - [ ] fix: picsum not working
 
 #!markdown
 
-- [ ] vscode terminal auto replies
+- [ ] vscode terminal auto replies (find out what it is)
 
 #!markdown
 
-- [ ] get some mermaid classes for quick styling
+- [ ] try wlanscan native call
 
 #!markdown
 
@@ -90,20 +88,23 @@ decided to postpone fancy features for cfg-manager:
 
 #!markdown
 
-- [ ] try wlanscan native call
-
-#!markdown
-
-- [x] implement cfgManager, test it for:
-  - [x] strings
-  - [x] ints
-  - [x] lists
-  - [x] single string while calling
-  - [ ] hashtables optional
-
-#!markdown
-
 ## **DONE**
+
+#!markdown
+
+- [x] ~~use `adb shell cmd notification post -t`~~
+
+#!markdown
+
+- [ ] ~~get some mermaid classes for quick styling~~
+
+#!markdown
+
+- [x] ~~implement cfgManager, test it for:~~
+  - [x] ~~strings~~
+  - [x] ~~ints~~
+  - [x] ~~lists~~
+  - [x] ~~single string while calling~~
 
 #!markdown
 
