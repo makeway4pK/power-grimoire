@@ -1,6 +1,6 @@
 param(
 	[string] $Port,
-	[switch] $NoPingscan,
+	[switch] $Pingscan,
 	[switch] $NoGreeting,
 	[switch] $SerialOut
 )
@@ -232,7 +232,7 @@ function Wadb-Async {
 		InvokeAsyncOutput()
 	}
 	
-	if (-not $NoPingscan) {
+	if ($Pingscan) {
 		# Add Pingscan procedure to previous connect procedure
 		$Procedure = [string](GetProcedure-Pingscan) + "`n" + $Procedure
 		# Prepare Pingscan candidates
@@ -257,7 +257,7 @@ function Wadb-Async {
 				$thr.Dispose()
 			}
 		}
-		if ($PingsCandidates.Count -eq 0 -or $i -gt $PingsCandidates.Count) { continue }
+		if ($PingsCandidates.Count -eq 0 -or $i -ge $PingsCandidates.Count) { continue }
 		$threads += foreach ($ip in $PingsCandidates[$i..($i + $BatchSize)]) {
 			[RunspaceThread]::new().
 			SetShell([powershell]::Create().
