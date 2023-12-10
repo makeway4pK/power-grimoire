@@ -16,7 +16,7 @@
 - [ ] Ministeam: wait for app process before minimizing steam
   - [ ] add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam
   - [ ] get app exe name from shortcuts.vdf
-  - [ ] switch back to single app launcher, good sideeffect:will make quotes unnecessary?
+  - [x] ~~switch back to single app launcher, good sideeffect:will make quotes unnecessary?~~
 
 #!markdown
 

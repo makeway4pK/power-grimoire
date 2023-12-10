@@ -1,7 +1,7 @@
 [CmdletBinding(PositionalBinding = $false)]
 param(
 	[Parameter(ValueFromRemainingArguments = $true)]
-	[string[]] $appnames
+	[string] $appname
 )
 . ./cfgMan.ps1 -get steam_path
 $proc_wait = 20
@@ -12,7 +12,8 @@ $toHide_WinsCount = 2
 
 if (-not $steam_path) { exit }
 $proc_name = 'steamwebhelper'
-if (-not $appnames) { exit }
+if (-not $appname) { exit }
+Write-Verbose "Ministeam is looking for '$appname'"
 function Main {
 	$userID = Get-SteamUser
 	if (-not $userID) {
@@ -26,13 +27,19 @@ function Main {
 	# Finally, launch apps
 	$notFound = @()
 	[bool]$anyLaunched = $false
-	foreach ($app in $appnames) {
-		if ($pairs[$app]) {
-			Start-Process "steam://rungameid/$($pairs[$app])" 
-			$anyLaunched = $anyLaunched -or $?
-		}
-		else { $notFound += $app }
+	# foreach ($app in $appnames) {
+	# 	if ($pairs[$app]) {
+	# 		Start-Process "steam://rungameid/$($pairs[$app])" 
+	# 		$anyLaunched = $anyLaunched -or $?
+	# 	}
+	# 	else { $notFound += $app }
+	# }
+	if ($pairs[$appname]) {
+		Start-Process "steam://rungameid/$($pairs[$appname])" 
+		$anyLaunched = $anyLaunched -or $?
 	}
+	else { $notFound += $appname }
+	
 	if ($notFound.count -ne 0) {
 		"'$($notFound-join"', '")' were not found in these appnames:`n"
 		$pairs
@@ -175,6 +182,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$i += $matchWith.Count
 		
 		$pairs[$appNametxt] = Decode-appID($appIDtxt)
+		if ($appNametxt -eq $appname) { return }
 	}
 	return $pairs
 }
