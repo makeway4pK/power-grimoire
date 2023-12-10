@@ -22,30 +22,18 @@ function Main {
 	}
 	$apps = Get-appIDs-fromShortcuts.vdf ($userID)
 
-	# Finally, launch apps
-	$notFound = @()
-	[bool]$anyLaunched = $false
-	# foreach ($app in $appnames) {
-	# 	if ($pairs[$app]) {
-	# 		Start-Process "steam://rungameid/$($pairs[$app])" 
-	# 		$anyLaunched = $anyLaunched -or $?
-	# 	}
-	# 	else { $notFound += $app }
-	# }
+	# launch app
 	if ($apps[$appname]) {
 		Start-Process "steam://rungameid/$($apps[$appname].id)" 
-		$anyLaunched = $anyLaunched -or $?
-	}
-	else { $notFound += $appname }
-	
-	if ($notFound.count -ne 0) {
-		"'$($notFound-join"', '")' was not found in these appnames:`n"
-		foreach ($key in $apps.keys) { "$($apps[$key].id)`t$key" }
-	}
-	if ($anyLaunched) { 
-		net session 2>&1>$null
-		if ($?) { Await-App ; Keep-Steam-Minimized } else {
-			"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
+		if ($?) { 
+			net session 2>&1>$null
+			if ($?) { Await-App ; Keep-Steam-Minimized } else {
+				"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
+			}
+		}
+		else {
+			"'$appname' was not found in these appnames:`n"
+			foreach ($key in $apps.keys) { "$($apps[$key].id)`t$key" }
 		}
 	}
 }
@@ -106,18 +94,6 @@ function Get-SteamUser {
 	}
 	return $last_ID3
 }
-# function Get-PairsFrom_ShortcutsFile($userID) {
-# 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
-# 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
-# 	$pairtxt | write-verbose
-# 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
-# 	$apps = @{}
-# 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
-# 		$apps[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
-# 		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
-# 	}
-# 	return $apps
-# }
 function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
 	"Decoding: $appIDtxt, counts as $($appIDtxt.Count)" | Write-Verbose
