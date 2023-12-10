@@ -13,13 +13,6 @@
 
 #!markdown
 
-- [ ] Ministeam: wait for app process before minimizing steam
-  - [ ] add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam
-  - [ ] get app exe name from shortcuts.vdf
-  - [ ] switch back to single app launcher, good sideeffect:will make quotes unnecessary?
-
-#!markdown
-
 - [ ] add upgrades and adb serial param to miroor5
 
 #!markdown
@@ -89,6 +82,13 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [x] ~~Ministeam: wait for app process before minimizing steam~~
+  - [x] ~~add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam~~
+  - [x] ~~get app exe name from shortcuts.vdf~~
+  - [x] ~~switch back to single app launcher, good sideeffect:will make quotes unnecessary?~~
 
 #!markdown
 
