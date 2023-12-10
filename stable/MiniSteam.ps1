@@ -20,9 +20,7 @@ function Main {
 		"No Steam user found, aborting"
 		exit
 	}
-	$apps = Get-appIDs-fromScreenshots.vdf ($userID)
-	$add = Get-appIDs-fromShortcuts.vdf ($userID)
-	foreach ($key in $add.keys) { $apps[$key] = $add[$key] }
+	$apps = Get-appIDs-fromShortcuts.vdf ($userID)
 
 	# Finally, launch apps
 	$notFound = @()
@@ -97,18 +95,6 @@ function Get-SteamUser {
 		}
 	}
 	return $last_ID3
-}
-function Get-appIDs-fromScreenshots.vdf($userID) {
-	$pairtxt = Get-Content -Raw "$steam_path/userdata/$userID/760/screenshots.vdf"
-	$pairtxt = $pairtxt -split 'shortcutnames.*'
-	$pairtxt = $pairtxt[1] -split "`n" -match '.*".*'
-	$pairtxt = $pairtxt -split '"' | Where-Object Length -gt 2
-	$apps = @{}
-	for ($i = 0; $i -lt $pairtxt.Count; $i += 2) {
-		$apps[$pairtxt[$i + 1]] = [app]::new()
-		$apps[$pairtxt[$i + 1]].id = $pairtxt[$i] # overwrite
-	}
-	return $apps
 }
 # function Get-PairsFrom_ShortcutsFile($userID) {
 # 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
