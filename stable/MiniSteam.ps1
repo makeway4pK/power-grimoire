@@ -33,7 +33,7 @@ function Main {
 	# 	else { $notFound += $app }
 	# }
 	if ($apps[$appname]) {
-		Start-Process "steam://rungameid/$($pairs[$appname])" 
+		Start-Process "steam://rungameid/$($apps[$appname].id)" 
 		$anyLaunched = $anyLaunched -or $?
 	}
 	else { $notFound += $appname }
@@ -44,7 +44,7 @@ function Main {
 	}
 	if ($anyLaunched) { 
 		net session 2>&1>$null
-		if ($?) { Keep-Steam-Minimized } else {
+		if ($?) { Await-App ; Keep-Steam-Minimized } else {
 			"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
 		}
 	}
@@ -52,6 +52,8 @@ function Main {
 function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
+	
+	"Awaiting Steam" | Write-Verbose
 	# wait for process and window handle
 	$timeout = $proc_wait * 2
 	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
@@ -73,6 +75,14 @@ function Keep-Steam-Minimized {
 			if ($wh::ShowWindow($hnd, 0)) { $toHide_WinsCount-- | Out-Null; 'True' }
 			else { 'No' } ) | Write-Verbose
 	}
+	return $true
+}
+function Await-App {
+	$timeout = $max_wait
+	"Awaiting app launch" | Write-Verbose
+	while (-not (Get-Process -ErrorAction Ignore ($apps[$appname].exe)) -and $timeout--)
+	{ Start-Sleep 1 }
+	"App launch detected" | Write-Verbose
 	return $true
 }
 function Get-SteamUser {
@@ -182,7 +192,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$apps[$appNametxt] = [app]::new()
 		$apps[$appNametxt].id = Decode-appID($appIDtxt)
 		$apps[$appNametxt].exe = $exeNametxt
-		if ($appNametxt -eq $appname) { return }
+		if ($appNametxt -eq $appname) { return  $apps }
 	}
 	return $apps
 }
