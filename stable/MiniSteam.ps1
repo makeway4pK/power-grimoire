@@ -20,9 +20,9 @@ function Main {
 		"No Steam user found, aborting"
 		exit
 	}
-	$pairs = Get-appIDs-fromScreenshots.vdf ($userID)
+	$apps = Get-appIDs-fromScreenshots.vdf ($userID)
 	$add = Get-appIDs-fromShortcuts.vdf ($userID)
-	foreach ($key in $add.keys) { $pairs[$key] = $add[$key] }
+	foreach ($key in $add.keys) { $apps[$key] = $add[$key] }
 
 	# Finally, launch apps
 	$notFound = @()
@@ -34,15 +34,15 @@ function Main {
 	# 	}
 	# 	else { $notFound += $app }
 	# }
-	if ($pairs[$appname]) {
+	if ($apps[$appname]) {
 		Start-Process "steam://rungameid/$($pairs[$appname])" 
 		$anyLaunched = $anyLaunched -or $?
 	}
 	else { $notFound += $appname }
 	
 	if ($notFound.count -ne 0) {
-		"'$($notFound-join"', '")' were not found in these appnames:`n"
-		$pairs
+		"'$($notFound-join"', '")' was not found in these appnames:`n"
+		foreach ($key in $apps.keys) { "$($apps[$key].id)`t$key" }
 	}
 	if ($anyLaunched) { 
 		net session 2>&1>$null
@@ -103,23 +103,24 @@ function Get-appIDs-fromScreenshots.vdf($userID) {
 	$pairtxt = $pairtxt -split 'shortcutnames.*'
 	$pairtxt = $pairtxt[1] -split "`n" -match '.*".*'
 	$pairtxt = $pairtxt -split '"' | Where-Object Length -gt 2
-	$pairs = @{}
+	$apps = @{}
 	for ($i = 0; $i -lt $pairtxt.Count; $i += 2) {
-		$pairs[$pairtxt[$i + 1]] = $pairtxt[$i] # overwrite
+		$apps[$pairtxt[$i + 1]] = [app]::new()
+		$apps[$pairtxt[$i + 1]].id = $pairtxt[$i] # overwrite
 	}
-	return $pairs
+	return $apps
 }
 # function Get-PairsFrom_ShortcutsFile($userID) {
 # 	$pairtxt = Get-Content -Encoding UTF7 -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 # 	$pairtxt = $pairtxt -csplit 'exe\0.*?appid\0' -csplit 'exe\0' -csplit 'appid\0'
 # 	$pairtxt | write-verbose
 # 	$cleantxt = $pairtxt[1..($pairtxt.Count - 2)] -replace '.$' -csplit '.appname\0'
-# 	$pairs = @{}
+# 	$apps = @{}
 # 	for ($i = 0; $i -lt $cleantxt.Count; $i += 2) {
-# 		$pairs[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
+# 		$apps[$cleantxt[$i + 1]] = Decode-appID($cleantxt[$i]) # overwrite
 # 		$cleantxt[$i + 1] + ": " + $cleantxt[$i] | Write-Verbose
 # 	}
-# 	return $pairs
+# 	return $apps
 # }
 function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
@@ -150,8 +151,8 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	[int[]]$bytes = Get-Content -Encoding Byte -Raw "$steam_path/userdata/$userID/config/shortcuts.vdf"
 	$id_tag = @(2, 97, 112, 112, 105, 100, 0)
 	$name_tag = @(1, 97, 112, 112, 110, 97, 109, 101, 0)
-	$tail_tag = @(0, 1)
-	$pairs = @{}
+	$exe_tag = @(1, 101, 120, 101, 0)
+	$apps = @{}
 	for ($next, $i = 1, (1 + $bytes.IndexOf($id_tag[0])); $next -gt 0; 
 		$i += 2 + ($next = $bytes[($i + 1)..($bytes.Count - 1)].IndexOf($id_tag[0]))) {
 		$matchWith = $id_tag[1..($id_tag.count - 1)]
@@ -165,26 +166,44 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		
 		$matchWith = $name_tag[1..($name_tag.count - 1)]
 		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
-			'Name tag not found unexpectedly' | Write-Verbose
+			'Name tag unexpectedly not found' | Write-Verbose
 			continue
 		}
 		$i += $matchWith.Count
 		
-		$name_len = $bytes[$i..($bytes.Count - 1)].IndexOf($tail_tag[0])
+		$name_len = $bytes[$i..($bytes.Count - 1)].IndexOf(0)
 		$appNametxt = [char[]]$bytes[$i..($i + $name_len - 1)] -join ''
-		$i += $name_len + 1
+		$i += $name_len + 2
 		
-		$matchWith = $tail_tag[1..($tail_tag.count - 1)]
+		$matchWith = $exe_tag[1..($exe_tag.count - 1)]
 		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
-			'Tail tag not found unexpectedly' | Write-Verbose
+			'Exe tag unexpectedly not found' | Write-Verbose
 			continue
 		}
 		$i += $matchWith.Count
 		
-		$pairs[$appNametxt] = Decode-appID($appIDtxt)
+		$exe_len = $bytes[$i..($bytes.Count - 1)].IndexOf(0)
+		$exeNametxt = [char[]]$bytes[$i..($i + $exe_len - 1)] -join ''
+		if ($exeNametxt -match '\\([^\\]*).exe') {
+			$exeNametxt = $Matches.1
+		}
+		else {
+			'Exe name unexpectedly not found' | Write-Verbose
+			continue
+		}
+		$i += $exe_len + 2
+		
+		$apps[$appNametxt] = [app]::new()
+		$apps[$appNametxt].id = Decode-appID($appIDtxt)
+		$apps[$appNametxt].exe = $exeNametxt
 		if ($appNametxt -eq $appname) { return }
 	}
-	return $pairs
+	return $apps
+}
+
+class app {
+	[string]$id
+	[string]$exe
 }
 
 Main
