@@ -8,6 +8,10 @@
 
 #!markdown
 
+- [ ] warmup bug, stop launching duplicates
+
+#!markdown
+
 - [ ] add b64 icon to wadb ack notif
 	- [x] ~~stream screen to device~~
 
