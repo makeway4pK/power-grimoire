@@ -13,7 +13,8 @@
 
 #!markdown
 
-- [ ] Ministeam: wait for app process before minimizing steam
+- [ ] Ministeam: non-steam shortcut stuck on 'launching' phase
+  - [ ] solution: wait for the 6th web helper process and kill it
   - [x] ~~add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam~~
   - [x] ~~get app exe name from shortcuts.vdf~~
   - [x] ~~switch back to single app launcher, good sideeffect:will make quotes unnecessary?~~
