@@ -23,6 +23,8 @@ $varList = @(
 )
 . ./cfgMan.ps1 -get $varList
 
+$ext_list = @('lnk', 'url')
+
 $moment = Get-Date
 "`n[[[[" + $moment.tostring() + "]]]]" | Add-Content $warmup_logFile
 $moment = $moment.ToFileTime()
@@ -126,11 +128,14 @@ function Start-Warmup {
 	"Running shortcuts" | NogThis
 	# loops for launching shortcuts
 	foreach ($key in $setPlan.Keys) {
-		$key = "$warmup_dir/*$key*"
-		$key = Get-ChildItem $key			# $_= dir "$warmup_dir/*$_*" doesn't work
-		foreach ($cut in $key) {
-			$cut.name | LogThis
-			Start-Process $cut
+		$key = "$warmup_dir/$key."
+		# $_= dir "$warmup_dir/*$_*" doesn't work
+		foreach ($ext in $ext_list) {
+			if ($cut = Get-Item ($key + $ext) -ErrorAction Ignore) {
+				$cut.name | LogThis
+				Start-Process $cut
+				break
+			}
 		}
 	}
 }
