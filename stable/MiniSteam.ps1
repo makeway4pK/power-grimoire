@@ -44,7 +44,7 @@ function Keep-Steam-Minimized {
 	# wait for updater, could take long
 	"Awaiting updater, timeout: $max_wait seconds..." | Write-Verbose
 	$timeout = $max_wait
-	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
+	while (-not($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
 				{ $_.MainWindowTitle -eq 'Sign in to Steam' } # Avoids interrupting update dialog
 			).MainWindowHandle) -and $timeout--)
 	{ Start-Sleep 1 }
@@ -52,7 +52,7 @@ function Keep-Steam-Minimized {
 	# wait for process and window handle
 	"Awaiting Steam, timeout: $proc_wait seconds..." | Write-Verbose
 	$timeout = $proc_wait * 2
-	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
+	while (-not($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
 				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
 			).MainWindowHandle) -and $timeout--)
 	{ Start-Sleep -Milliseconds 500 }
@@ -75,7 +75,7 @@ function Keep-Steam-Minimized {
 		
 		if (($miner = (Get-Process -ErrorAction Ignore $proc_name).where(
 					{ $_.MainWindowTitle -eq 'Launching...' }
-				)) -and !(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
+				)) -and -not(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
 			Stop-Process $miner #fixes frozen "Launching" phase
 			"Stopped pid:$($miner.Id)`nNow awaiting new Steam windows, timeout: $win_wait seconds..." | Write-Verbose
 			$timeout = $win_wait * 10
@@ -127,7 +127,7 @@ function Get-SteamUser {
 function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
 	"Decoding: $appIDtxt, counts as $($appIDtxt.Count)" | Write-Verbose
-	if (!($appIDtxt -is [Array])) {
+	if (-not($appIDtxt -is [Array])) {
 		$appIDtxt = $appIDtxt.ToCharArray()
 		" split to: $($appIDtxt.count)" 
 	}
@@ -140,7 +140,7 @@ function Decode-appID([char[]] $appIDtxt) {
 function isArrSame([Array]$both) {
 	$A, $B = $both
 	if ($A.count -ne $B.count) { return $false }
-	if (!$A.count) { return $A.GetType() -eq $B.GetType() }
+	if (-not$A.count) { return $A.GetType() -eq $B.GetType() }
 	for ($i = 0; $i -lt $A.count; $i++) {
 		if ($A[$i] -ne $B[$i]) {
 			"'$($A[$i])' doesn't match '$($B[$i])'" | Write-Verbose
@@ -158,7 +158,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	for ($next, $i = 1, (1 + $bytes.IndexOf($id_tag[0])); $next -gt 0; 
 		$i += 2 + ($next = $bytes[($i + 1)..($bytes.Count - 1)].IndexOf($id_tag[0]))) {
 		$matchWith = $id_tag[1..($id_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			continue
 		}
 		$i += $matchWith.Count
@@ -167,7 +167,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$i += 5
 		
 		$matchWith = $name_tag[1..($name_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Name tag unexpectedly not found' | Write-Verbose
 			continue
 		}
@@ -178,7 +178,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$i += $name_len + 2
 		
 		$matchWith = $exe_tag[1..($exe_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Exe tag unexpectedly not found' | Write-Verbose
 			continue
 		}
