@@ -4,9 +4,9 @@ param(
 	[string] $appname
 )
 . ./cfgMan.ps1 -get steam_path
-$proc_wait = 20
+$proc_wait = 120
 $max_wait = 600
-$win_wait = 5
+$win_wait = 30
 $toHide_WinsCount = 2
 
 
@@ -24,10 +24,11 @@ function Main {
 
 	# launch app
 	if ($apps[$appname]) {
+		$coldLaunch = -not [bool](Get-Process Steam* -ErrorAction Ignore)
 		Start-Process "steam://rungameid/$($apps[$appname].id)" 
 		if ($?) { 
 			net session 2>&1>$null
-			if ($?) { Await-App ; Keep-Steam-Minimized } else {
+			if ($?) { Keep-Steam-Minimized } else {
 				"Cannot Minimize Steam: Run script with admin privileges to fix" | Write-Verbose
 			}
 		}
@@ -41,29 +42,59 @@ function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
 	
-	"Awaiting Steam" | Write-Verbose
-	# wait for process and window handle
-	$timeout = $proc_wait * 2
-	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
-				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
-			).MainWindowHandle) -and $timeout--)
-	{ Start-Sleep -Milliseconds 500 }
-	$timeout = $max_wait
-	while (!($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
-				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
-			).MainWindowHandle) -and $timeout--)
-	{ Start-Sleep 1 }
-	if ($timeout -le 0) { return $false }
+	if ($coldLaunch) {
+		# wait for updater, could take long
+		"Awaiting updater, timeout: $max_wait seconds..." | Write-Verbose
+		$timeout = $max_wait
+		while (-not(Get-ProcessByTitle('Sign in to Steam')) -and $timeout--) # Avoids interrupting update dialog
+		{ Start-Sleep 1 }
+		# abort if not on schedule
+		if ($timeout -le 0)
+		{ "Timeout!" | Write-Verbose; return $false }
+	
+		# wait for process and window handle
+		"Awaiting login, timeout: $proc_wait seconds..." | Write-Verbose
+		$timeout = $proc_wait * 2
+		while (-not(Get-ProcessByTitle('Steam')) -and $timeout--) # Avoids interrupting login dialog
+		{ Start-Sleep -Milliseconds 500 }
+		# abort if not on schedule
+		if ($timeout -le 0)
+		{ "Timeout!" | Write-Verbose; return $false }
+	}
 	# Watch new windows and hide them quickly
+	"Hiding Windows, timeout: $win_wait seconds..." | Write-Verbose
 	$timeout = $win_wait * 10
-	while ($timeout-- -and $toHide_WinsCount) {
+	$toHide = $toHide_WinsCount
+	$minerUnseen = $true
+	while ($timeout-- -and ($toHide -or $minerUnseen)) {
 		Start-Sleep -Milliseconds 100
 		# Hide window, needs admin
-		"Window found: " + $(
-			if ($wh::ShowWindow($hnd, 0)) { $toHide_WinsCount-- | Out-Null; 'True' }
-			else { 'No' } ) | Write-Verbose
+		if ($toHide) {
+			if (($hnd = (Get-ProcessByTitle('Steam')).MainWindowHandle)) {
+				"Window hidden: " + $(
+					if ($wh::ShowWindow($hnd, 0)) { $toHide-- | Out-Null; 'Yes' }
+					else { 'No' } ) | Write-Verbose
+			}
+		}
+		
+		if (($miner = Get-ProcessByTitle('Launching...')) -and -not(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
+			Stop-Process $miner #fixes frozen "Launching" phase
+			$minerUnseen = $false
+			"Stopped pid:$($miner.Id)`nNow awaiting new Steam windows, timeout: $win_wait seconds..." | Write-Verbose
+			$timeout = $win_wait * 10
+			$toHide = $toHide_WinsCount
+		}
 	}
+	# abort if not on schedule
+	if ($timeout -le 0)
+	{ "Timeout!" | Write-Verbose; return $false }
+	
 	return $true
+}
+function Get-ProcessByTitle([string] $title) {
+	return (Get-Process -ErrorAction Ignore $proc_name).where(
+		{ $_.MainWindowTitle -eq $title }
+	)
 }
 function Await-App {
 	$timeout = $max_wait
@@ -97,7 +128,7 @@ function Get-SteamUser {
 function Decode-appID([char[]] $appIDtxt) {
 	[uint64]$appID = 0
 	"Decoding: $appIDtxt, counts as $($appIDtxt.Count)" | Write-Verbose
-	if (!($appIDtxt -is [Array])) {
+	if (-not($appIDtxt -is [Array])) {
 		$appIDtxt = $appIDtxt.ToCharArray()
 		" split to: $($appIDtxt.count)" 
 	}
@@ -110,7 +141,7 @@ function Decode-appID([char[]] $appIDtxt) {
 function isArrSame([Array]$both) {
 	$A, $B = $both
 	if ($A.count -ne $B.count) { return $false }
-	if (!$A.count) { return $A.GetType() -eq $B.GetType() }
+	if (-not$A.count) { return $A.GetType() -eq $B.GetType() }
 	for ($i = 0; $i -lt $A.count; $i++) {
 		if ($A[$i] -ne $B[$i]) {
 			"'$($A[$i])' doesn't match '$($B[$i])'" | Write-Verbose
@@ -128,7 +159,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 	for ($next, $i = 1, (1 + $bytes.IndexOf($id_tag[0])); $next -gt 0; 
 		$i += 2 + ($next = $bytes[($i + 1)..($bytes.Count - 1)].IndexOf($id_tag[0]))) {
 		$matchWith = $id_tag[1..($id_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			continue
 		}
 		$i += $matchWith.Count
@@ -137,7 +168,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$i += 5
 		
 		$matchWith = $name_tag[1..($name_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Name tag unexpectedly not found' | Write-Verbose
 			continue
 		}
@@ -148,7 +179,7 @@ function Get-appIDs-fromShortcuts.vdf($userID) {
 		$i += $name_len + 2
 		
 		$matchWith = $exe_tag[1..($exe_tag.count - 1)]
-		if (!(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
+		if (-not(isArrSame($bytes[$i..($i + $matchWith.Count - 1)], $matchWith))) {
 			'Exe tag unexpectedly not found' | Write-Verbose
 			continue
 		}
