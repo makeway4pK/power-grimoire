@@ -4,9 +4,9 @@ param(
 	[string] $appname
 )
 . ./cfgMan.ps1 -get steam_path
-$proc_wait = 20
+$proc_wait = 120
 $max_wait = 600
-$win_wait = 10
+$win_wait = 30
 $toHide_WinsCount = 2
 
 
