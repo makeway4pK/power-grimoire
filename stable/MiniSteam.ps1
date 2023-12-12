@@ -64,7 +64,8 @@ function Keep-Steam-Minimized {
 	"Hiding Windows, timeout: $win_wait seconds..." | Write-Verbose
 	$timeout = $win_wait * 10
 	$toHide = $toHide_WinsCount
-	while ($timeout--) {
+	$minerUnseen = $true
+	while ($timeout-- -and ($toHide -or $minerUnseen)) {
 		Start-Sleep -Milliseconds 100
 		# Hide window, needs admin
 		if ($toHide) {
@@ -77,6 +78,7 @@ function Keep-Steam-Minimized {
 					{ $_.MainWindowTitle -eq 'Launching...' }
 				)) -and -not(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
 			Stop-Process $miner #fixes frozen "Launching" phase
+			$minerUnseen = $false
 			"Stopped pid:$($miner.Id)`nNow awaiting new Steam windows, timeout: $win_wait seconds..." | Write-Verbose
 			$timeout = $win_wait * 10
 			while ($timeout--)	{
