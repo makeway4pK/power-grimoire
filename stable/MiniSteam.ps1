@@ -24,6 +24,7 @@ function Main {
 
 	# launch app
 	if ($apps[$appname]) {
+		$coldLaunch = -not [bool](Get-Process Steam* -ErrorAction Ignore)
 		Start-Process "steam://rungameid/$($apps[$appname].id)" 
 		if ($?) { 
 			net session 2>&1>$null
@@ -41,25 +42,25 @@ function Keep-Steam-Minimized {
 	
 	$wh = ./stable/addtype-WindowHandler.ps1
 	
-	# wait for updater, could take long
-	"Awaiting updater, timeout: $max_wait seconds..." | Write-Verbose
-	$timeout = $max_wait
-	while (-not($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
-				{ $_.MainWindowTitle -eq 'Sign in to Steam' } # Avoids interrupting update dialog
-			).MainWindowHandle) -and $timeout--)
-	{ Start-Sleep 1 }
+	if ($coldLaunch) {
+		# wait for updater, could take long
+		"Awaiting updater, timeout: $max_wait seconds..." | Write-Verbose
+		$timeout = $max_wait
+		while (-not(Get-ProcessByTitle('Sign in to Steam')) -and $timeout--) # Avoids interrupting update dialog
+		{ Start-Sleep 1 }
+		# abort if not on schedule
+		if ($timeout -le 0)
+		{ "Timeout!" | Write-Verbose; return $false }
 	
-	# wait for process and window handle
-	"Awaiting Steam, timeout: $proc_wait seconds..." | Write-Verbose
-	$timeout = $proc_wait * 2
-	while (-not($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
-				{ $_.MainWindowTitle -eq 'Steam' } # Avoids interrupting update dialog
-			).MainWindowHandle) -and $timeout--)
-	{ Start-Sleep -Milliseconds 500 }
-	# abort if not on schedule
-	if ($timeout -le 0)
-	{ "Timeout!" | Write-Verbose; return $false }
-	
+		# wait for process and window handle
+		"Awaiting login, timeout: $proc_wait seconds..." | Write-Verbose
+		$timeout = $proc_wait * 2
+		while (-not(Get-ProcessByTitle('Steam')) -and $timeout--) # Avoids interrupting login dialog
+		{ Start-Sleep -Milliseconds 500 }
+		# abort if not on schedule
+		if ($timeout -le 0)
+		{ "Timeout!" | Write-Verbose; return $false }
+	}
 	# Watch new windows and hide them quickly
 	"Hiding Windows, timeout: $win_wait seconds..." | Write-Verbose
 	$timeout = $win_wait * 10
@@ -69,26 +70,19 @@ function Keep-Steam-Minimized {
 		Start-Sleep -Milliseconds 100
 		# Hide window, needs admin
 		if ($toHide) {
-			"Window found: " + $(
-				if ($wh::ShowWindow($hnd, 0)) { $toHide-- | Out-Null; 'Yes' }
-				else { 'No' } ) | Write-Verbose
+			if (($hnd = (Get-ProcessByTitle('Steam')).MainWindowHandle)) {
+				"Window hidden: " + $(
+					if ($wh::ShowWindow($hnd, 0)) { $toHide-- | Out-Null; 'Yes' }
+					else { 'No' } ) | Write-Verbose
+			}
 		}
 		
-		if (($miner = (Get-Process -ErrorAction Ignore $proc_name).where(
-					{ $_.MainWindowTitle -eq 'Launching...' }
-				)) -and -not(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
+		if (($miner = Get-ProcessByTitle('Launching...')) -and -not(Get-Process $apps[$appname].exe -ErrorAction Ignore)) {
 			Stop-Process $miner #fixes frozen "Launching" phase
 			$minerUnseen = $false
 			"Stopped pid:$($miner.Id)`nNow awaiting new Steam windows, timeout: $win_wait seconds..." | Write-Verbose
 			$timeout = $win_wait * 10
-			while ($timeout--)	{
-				Start-Sleep -Milliseconds 100
-				"$timeout "
-				if ($hnd = (Get-Process -ErrorAction Ignore $proc_name).where(
-						{ $_.MainWindowTitle -eq 'Steam' } # get new handle
-					).MainWindowHandle)
-				{ $toHide = $toHide_WinsCount; break }
-			}
+			$toHide = $toHide_WinsCount
 		}
 	}
 	# abort if not on schedule
@@ -96,6 +90,11 @@ function Keep-Steam-Minimized {
 	{ "Timeout!" | Write-Verbose; return $false }
 	
 	return $true
+}
+function Get-ProcessByTitle([string] $title) {
+	return (Get-Process -ErrorAction Ignore $proc_name).where(
+		{ $_.MainWindowTitle -eq $title }
+	)
 }
 function Await-App {
 	$timeout = $max_wait
