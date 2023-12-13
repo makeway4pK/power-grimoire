@@ -8,24 +8,7 @@
 
 #!markdown
 
-- [x] ~~warmup bug, stop launching duplicates~~
-
-#!markdown
-
-- [ ] add b64 icon to wadb ack notif
-	- [x] ~~stream screen to device~~
-
-#!markdown
-
-- [x] ~~Ministeam: non-steam shortcut stuck on 'launching' phase~~
-  - [x] ~~solution: wait for the 6th web helper process and kill it~~
-  - [x] ~~add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam~~
-  - [x] ~~get app exe name from shortcuts.vdf~~
-  - [x] ~~switch back to single app launcher, good sideeffect:will make quotes unnecessary?~~
-
-#!markdown
-
-- [ ] add upgrades and adb serial param to miroor5
+- [ ] fix: picsum not working
 
 #!markdown
 
@@ -71,15 +54,15 @@
 
 #!markdown
 
-- [ ] fix: picsum not working
-
-#!markdown
-
 - [ ] vscode terminal auto replies (find out what it is)
 
 #!markdown
 
 - [ ] try wlanscan native call
+
+#!markdown
+
+- [ ] add upgrades and adb serial param to miroor5
 
 #!markdown
 
@@ -97,7 +80,17 @@ decided to postpone fancy features for cfg-manager:
 
 #!markdown
 
-- [x] ~~Ministeam: wait for app process before minimizing steam~~
+- [x] ~~warmup bug, stop launching duplicates~~
+
+#!markdown
+
+- [ ] ~~add b64 icon to wadb ack notif: nothing other than bigpicture works, atleast in my case~~
+	- [x] ~~stream screen to device~~
+
+#!markdown
+
+- [x] ~~Ministeam: non-steam shortcut stuck on 'launching' phase~~
+  - [x] ~~solution: wait for the 6th web helper process and kill it~~
   - [x] ~~add a new function to replace keep-steam-minzd. It will wait for app process before minimizing steam~~
   - [x] ~~get app exe name from shortcuts.vdf~~
   - [x] ~~switch back to single app launcher, good sideeffect:will make quotes unnecessary?~~
