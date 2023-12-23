@@ -18,6 +18,11 @@
 		- pro: contextual, curated walls
 		- pro: can sync with phone wall
 		- con: low resolution
+	- [ ] fix 3: maybe try syncing phone wall to PC?
+		- pro: no PC config ever
+		- pro: reduced traffic
+		- pro: one stop for library change
+		- need to extract current wall from android: 
 
 #!markdown
 
