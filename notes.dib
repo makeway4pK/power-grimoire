@@ -8,21 +8,7 @@
 
 #!markdown
 
-- [ ] fix: picsum not working
-	- [ ] problem: picsum uri/domain keeps changing
-	- [ ] fix 1: modular uri, controlled from phone
-		- pro: easy config,
-		- pro: high resolution backgrounds
-		- con: no phone sync solution yet
-	- [ ] fix 2: use bing daily walls
-		- pro: contextual, curated walls
-		- pro: can sync with phone wall
-		- con: low resolution
-	- [ ] fix 3: maybe try syncing phone wall to PC?
-		- pro: no PC config ever
-		- pro: reduced traffic
-		- pro: one stop for library change
-		- need to extract current wall from android: 
+- [ ] bing wallpaper on demand
 
 #!markdown
 
@@ -95,6 +81,24 @@ decided to postpone fancy features for cfg-manager:
 #!markdown
 
 ## **DONE**
+
+#!markdown
+
+- [ ] ~~fix: picsum not working~~
+	- [ ] ~~problem: picsum uri/domain keeps changing~~ not changed, new schtasks folder caused the hiccup
+	- [ ] ~~fix 1: modular uri, controlled from phone~~
+		- ~~pro: easy config,~~
+		- ~~pro: high resolution backgrounds~~
+		- ~~con: no phone sync solution yet~~
+	- [ ] ~~fix 2: use bing daily walls~~ new todo
+		- ~~pro: contextual, curated walls~~
+		- ~~pro: can sync with phone wall~~
+		- ~~con: low resolution~~
+	- [ ] ~~fix 3: maybe try syncing phone wall to PC?~~
+		- ~~pro: no PC config ever~~
+		- ~~pro: reduced traffic~~
+		- ~~pro: one stop for library change~~
+		- ~~need to extract current wall from android: can't on pure cli~~
 
 #!markdown
 
