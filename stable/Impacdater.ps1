@@ -42,15 +42,21 @@ while ((./stable/LaunchIf.ps1 -Online) -and ($hnd = (Get-Process -ErrorAction Ig
 
 # Initiate shutdown only if $process is still up,
 #  implying exit reason was connection loss
-if ($hnd = (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }).MainWindowHandle) {
-    "Process is still up" | Write-Verbose
-    if ($wh::GetForegroundWindow() -eq $hnd) {
-        "Window is in Foreground, attempting shutdown" | Write-Verbose
-        ./stable/LaunchIf.ps1 -Launch shutdown -ArgStr /s, /hybrid, /t, 180, /c, '"Impact', Updater, 'ran,', time, to, 'sleep!"' -NotOnline 
-    }
-    else {
-        # Don't shutdown if not in foreground
-        "Window is not focused, stopping process" | Write-Verbose
-        (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }) | Stop-Process
-    }
-}
+# if ($hnd = (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }).MainWindowHandle) {
+# "Process is still up" | Write-Verbose
+# if ($wh::GetForegroundWindow() -eq $hnd) {
+# "Window is in Foreground, attempting shutdown" | Write-Verbose
+./stable/LaunchIf.ps1 -Launch shutdown -ArgStr /s, /hybrid, /t, 180, /c, '"Impact', Updater, 'ran,', time, to, 'sleep!"' -NotOnline 
+# Give an easy out if user is not afk
+Start-Process powershell -ArgumentList '
+        \"Press any key to abort shutdown\";
+        $n=$Host.UI.RawUI.ReadKey();
+        shutdown -a;
+        pause'
+# }
+# else {
+## Don't shutdown if not in foreground
+# "Window is not focused, stopping process" | Write-Verbose
+# (Get-Process -ErrorAction Ignore $process).where({ $_.MainWindowTitle -eq $title }) | Stop-Process
+# }
+# }
