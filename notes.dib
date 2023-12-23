@@ -9,6 +9,15 @@
 #!markdown
 
 - [ ] fix: picsum not working
+	- [ ] problem: picsum uri/domain keeps changing
+	- [ ] fix 1: modular uri, controlled from phone
+		- pro: easy config,
+		- pro: high resolution backgrounds
+		- con: no phone sync solution yet
+	- [ ] fix 2: use bing daily walls
+		- pro: contextual, curated walls
+		- pro: can sync with phone wall
+		- con: low resolution
 
 #!markdown
 
