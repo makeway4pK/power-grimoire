@@ -1,8 +1,9 @@
 # Created: 10Sep2022 12am
 # @makeway4pK
-# This script changes the wallpaper, sourced from a stock picture service thru
-#   a static url. Works in reverse common sense order to minimize change time
-#   and allow waiting for network indefinitely if offline.
+# This script changes the desktop and lockscreen wallpaper, sourced from a
+# stock picture service thru a static url. Works in reverse common sense
+# order to minimize change time and allow waiting for network indefinitely
+# if offline.
  
 . ./cfgMan.ps1 -get 'picsumpaper_saveLoc'
 
@@ -21,7 +22,8 @@ function PicSum {
 	}
 	
 	Apply-Wallpaper
-	
+	Apply-LockPaper
+	Mark-AsOld
 	Get-Wallpaper
 }
 
@@ -32,10 +34,15 @@ function Get-Wallpaper {
 	Remove-Item $oldSaveLocation
 }
 
-function Apply-Wallpaper {
-	Update-Wallpaper -Path $picsumpaper_saveLoc -Style Span
-	Rename-Item $picsumpaper_saveLoc $oldSaveLocation
+function Mark-AsOld { Rename-Item $picsumpaper_saveLoc $oldSaveLocation }
+
+function Apply-LockPaper {
+	$RegKeyPath = “HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP”
+	New-Item -Path $RegKeyPath -Force
+	New-ItemProperty -Path $RegKeyPath -Name “LockScreenImagePath” -Value $picsumpaper_saveLoc -PropertyType STRING -Force
 }
+
+function Apply-Wallpaper {	Update-Wallpaper -Path $picsumpaper_saveLoc -Style Span }
 
 function Update-Wallpaper {
 	#--------------------------------------------------------------------------------------------------#
