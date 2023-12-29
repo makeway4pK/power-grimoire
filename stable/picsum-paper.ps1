@@ -20,7 +20,7 @@ function PicSum {
 		}
 	}
 	
-	Change-Wallpaper
+	Apply-Wallpaper
 	
 	Get-Wallpaper
 }
@@ -32,7 +32,7 @@ function Get-Wallpaper {
 	Remove-Item $oldSaveLocation
 }
 
-function Change-Wallpaper {
+function Apply-Wallpaper {
 	Update-Wallpaper -Path $picsumpaper_saveLoc -Style Span
 	Rename-Item $picsumpaper_saveLoc $oldSaveLocation
 }
