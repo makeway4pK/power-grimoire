@@ -1,8 +1,9 @@
 # Created: 10Sep2022 12am
 # @makeway4pK
 # This script changes the desktop and lockscreen wallpaper, sourced from a
-# stock picture service thru a static url. Works in reverse common sense
-# order to minimize change time and allow waiting for network indefinitely
+# stock picture service thru a static url. Applies the pre-downlaoded wallpaper
+# for a quick change before downloading one for the next change
+# in order to minimize change time and allow waiting for network indefinitely
 # if offline.
  
 . ./cfgMan.ps1 -get 'picsumpaper_saveLoc'
