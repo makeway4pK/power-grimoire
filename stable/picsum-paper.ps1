@@ -43,6 +43,10 @@ function Apply-LockPaper {
 	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $picsumpaper_saveLoc -PropertyType STRING -Force
 }
 
-function Apply-Wallpaper {	Update-Wallpaper -Path $picsumpaper_saveLoc -Style Span }
+function Apply-Wallpaper {
+	Push-Location $PSScriptRoot
+	./Set-Wallpaper.ps1 -Path $picsumpaper_saveLoc -Style Span
+	Pop-Location 
+}
 
 PicSum
