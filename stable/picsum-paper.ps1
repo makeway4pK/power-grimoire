@@ -37,9 +37,9 @@ function Get-Wallpaper {
 function Mark-AsOld { Rename-Item $picsumpaper_saveLoc $oldSaveLocation }
 
 function Apply-LockPaper {
-	$RegKeyPath = “HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP”
+	$RegKeyPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP"
 	New-Item -Path $RegKeyPath -Force
-	New-ItemProperty -Path $RegKeyPath -Name “LockScreenImagePath” -Value $picsumpaper_saveLoc -PropertyType STRING -Force
+	New-ItemProperty -Path $RegKeyPath -Name "LockScreenImagePath" -Value $picsumpaper_saveLoc -PropertyType STRING -Force
 }
 
 function Apply-Wallpaper {	Update-Wallpaper -Path $picsumpaper_saveLoc -Style Span }
