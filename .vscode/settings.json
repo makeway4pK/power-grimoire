@@ -1,3 +1,4 @@
 {
-  "todo-tree.tree.showBadges": true
+  "todo-tree.tree.showBadges": true,
+  "powershell.scriptAnalysis.settingsPath": ".vscode/PSScriptAnalyzerSettings.psd1"
 }
