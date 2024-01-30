@@ -36,8 +36,8 @@ function Save {
 		$CheckPoint += '/' + $Item.Name
 	}
 	else {
-		$CheckPoint = $Item.Parent.FullName + $Slot + '/' + $Item.Name
-		New-Item $CheckPoint -PathType Container
+		$CheckPoint = $Item.Parent.FullName + $CheckPoint
+		New-Item $CheckPoint -ItemType Container
 	}
 
 	Copy-Item $Item $CheckPoint -Recurse -Force 
@@ -47,8 +47,9 @@ function Restore {
 	$CheckPoint = ''
 	if ($Slot) { $CheckPoint = ' ' + $Slot }
 	$CheckPoint = '/CheckPoint' + $CheckPoint
-	$Item = $Path -split '[\\/]'
-	$CheckPoint = ($Item[0..($Item.count - 2)] -join '/') + $CheckPoint + '/' + $Item[-1]
+	$Items = ($Path -split '[\\/]').Where({ $_.trim() })
+	$Path = ($Items[0..($Items.count - 2)] -join '/')
+	$CheckPoint = $Path + $CheckPoint + '/' + $Items[-1]
 	
 	if (!(Test-Path $CheckPoint)) {
 		Write-Output CheckPoint not found
