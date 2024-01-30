@@ -35,7 +35,7 @@ function Save {
 		Write-Error "Could not find item at: '$Item'"
 		return
 	}
-	$Item = Get-Item $Item
+	$Item = Get-Item $Item -Force
 
 	if (Test-Path $Item -PathType Leaf) {
 		$CheckPoint = $Item.Directory.FullName + $CheckPoint
