@@ -8,6 +8,15 @@
 
 #!markdown
 
+- [ ] simple failure checks + alerts for checkpointer
+
+#!markdown
+
+- [ ] fix: wadb is slow is it? takes 8s and 5s on 1st n 2nd run  
+  3s for adb start-server is expected but maybe the 5s can be improved
+
+#!markdown
+
 - [ ] bing wallpaper on demand
 
 #!markdown
@@ -46,11 +55,6 @@
   - [x] ~~option to force rescan~~
   - needs to be able to detect new connections (to rescan if new connections found)
   - option to force retrieve cached list
-
-#!markdown
-
-- [ ] fix: wadb is slow is it? takes 8s and 5s on 1st n 2nd run  
-  3s for adb start-server is expected but maybe the 5s can be improved
 
 #!markdown
 
