@@ -19,17 +19,16 @@ param (
 )
 
 function CheckPointer {
+	$CheckPoint = ''
+	if ($Slot) { $CheckPoint = '/Slot ' + $Slot }
+	$CheckPoint = '/Checkpoints' + $CheckPoint
+	
 	# Save and Restore both allowed in one call
 	if ($Save) { Save }
 	if ($Restore) { Restore }
 }
 
 function Save {
-	
-	$CheckPoint = ''
-	if ($Slot) { $CheckPoint = ' ' + $Slot }
-	$CheckPoint = '/CheckPoint' + $CheckPoint
-	
 	$Item = $Path
 	if (!(Test-Path $Item)) {
 		Write-Error "Could not find item at: '$Item'"
@@ -49,10 +48,6 @@ function Save {
 	Copy-Item $Item $CheckPoint -Recurse -Force 
 }
 function Restore {
-	
-	$CheckPoint = ''
-	if ($Slot) { $CheckPoint = ' ' + $Slot }
-	$CheckPoint = '/CheckPoint' + $CheckPoint
 	$Items = ($Path -split '[\\/]').Where({ $_.trim() })
 	$Path = ($Items[0..($Items.count - 2)] -join '/')
 	$CheckPoint = $Path + $CheckPoint + '/' + $Items[-1]
