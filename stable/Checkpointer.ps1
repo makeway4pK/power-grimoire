@@ -37,16 +37,15 @@ function Save {
 	}
 	$Item = Get-Item $Item -Force
 
-	if (Test-Path $Item -PathType Leaf) {
-		$CheckPoint = $Item.Directory.FullName + $CheckPoint
-		New-Item $CheckPoint -ItemType Container
-		# $CheckPoint += '/' + $Item.Name
+	if (Test-Path $Item -PathType Leaf)
+	{ $CheckPoint = $Item.Directory.FullName + $CheckPoint }
+	else { $CheckPoint = $Item.Parent.FullName + $CheckPoint }
+	
+	New-Item $CheckPoint -ItemType Container -ErrorAction Ignore
+	if (!(Test-Path $CheckPoint)) {
+		Write-Error "Could not create checkpoint at: '$CheckPoint'"
+		return
 	}
-	else {
-		$CheckPoint = $Item.Parent.FullName + $CheckPoint
-		New-Item $CheckPoint -ItemType Container
-	}
-
 	Copy-Item $Item $CheckPoint -Recurse -Force 
 }
 function Restore {
