@@ -25,7 +25,7 @@ function Save {
 	
 	$Item = $Path
 	if (!(Test-Path $Item)) {
-		Write-Output Item not found
+		Write-Error "Could not find item at: '$Item'"
 		return
 	}
 	$Item = Get-Item $Item
@@ -52,7 +52,7 @@ function Restore {
 	$CheckPoint = $Path + $CheckPoint + '/' + $Items[-1]
 	
 	if (!(Test-Path $CheckPoint)) {
-		Write-Output CheckPoint not found
+		Write-Error "Could not find checkpoint at: '$CheckPoint'"
 		return
 	}
 
