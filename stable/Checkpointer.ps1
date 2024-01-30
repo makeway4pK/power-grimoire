@@ -17,6 +17,13 @@ param (
 	[string]
 	$Slot
 )
+
+function CheckPointer {
+	# Save and Restore both allowed in one call
+	if ($Save) { Save }
+	if ($Restore) { Restore }
+}
+
 function Save {
 	
 	$CheckPoint = ''
@@ -59,7 +66,4 @@ function Restore {
 	Copy-Item $CheckPoint $Path -Recurse -Force 
 }
 
-foreach ($par in $PSBoundParameters.Keys) {
-	if (!($par -eq 'Save') -and !($par -eq 'Restore')) { continue }
-	if ($PSBoundParameters[$par]) { &$par }
-}
+CheckPointer
