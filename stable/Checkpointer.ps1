@@ -33,7 +33,7 @@ function Save {
 	if (Test-Path $Item -PathType Leaf) {
 		$CheckPoint = $Item.Directory.FullName + $CheckPoint
 		New-Item $CheckPoint -ItemType Container
-		$CheckPoint += '/' + $Item.Name
+		# $CheckPoint += '/' + $Item.Name
 	}
 	else {
 		$CheckPoint = $Item.Parent.FullName + $CheckPoint
