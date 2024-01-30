@@ -1,0 +1,14 @@
+<LogEntry Date="2024-01-11 09:44:48" Severity="Error" Source="PowerShellWindowHost.Program.Main" ThreadId="1">
+  <Message>Starting target process threw an unknown Exception: System.ComponentModel.Win32Exception (0x80004005): Access is denied
+   at System.Diagnostics.Process.StartWithCreateProcess(ProcessStartInfo startInfo)
+   at System.Diagnostics.Process.Start(ProcessStartInfo startInfo)
+   at PowerShellWindowHost.Program.Main()</Message>
+</LogEntry>
+<LogEntry Date="2024-01-11 09:44:48" Severity="Exception" Source="PowerShellWindowHost.Program.Main" ThreadId="1">
+  <Exception Type="System.ComponentModel.Win32Exception" Source="System.Diagnostics.Process.StartWithCreateProcess">
+    <Message>Access is denied</Message>
+    <StackTrace>   at System.Diagnostics.Process.StartWithCreateProcess(ProcessStartInfo startInfo)
+   at System.Diagnostics.Process.Start(ProcessStartInfo startInfo)
+   at PowerShellWindowHost.Program.Main()</StackTrace>
+  </Exception>
+</LogEntry>
