@@ -5,37 +5,39 @@
 
 . ./cfgMan.ps1 -get 'BingPaper_saveLoc'
 
-$oldSaveLocation = "${BingPaper_saveLoc}-old"
+$lockedSaveLoc = "${BingPaper_saveLoc}-Updating-PleaseWait"
 $retryDelay = 30
 $SkipMemory = 30
 $bingDateFormat = 'yyyyMMdd'
 
 function BingPaper {
 	if (!(Test-Path -Path $BingPaper_saveLoc)) {
-		if (Test-Path -Path $oldSaveLocation) {
-			Get-BingPaper
-		}
-		else {
+		if (Test-Path -Path $lockedSaveLoc) {
 			while (!(Test-Path -Path $BingPaper_saveLoc)) { Start-Sleep -Seconds 2 }
 		}
 	}
+	# Signal pending operation to other instances
+	Mark-AsLocked
 	
+	Get-BingPaper
 	Apply-Wallpaper
 	Apply-LockPaper
-	Mark-AsOld
-	Get-BingPaper
+
+	# Signal completion to other instances
+	Mark-AsUnlocked
 }
 
-function Mark-AsOld { Rename-Item $BingPaper_saveLoc $oldSaveLocation }
+function Mark-AsLocked { Rename-Item $BingPaper_saveLoc $lockedSaveLoc }
+function Mark-AsUnlocked { Rename-Item $lockedSaveLoc $BingPaper_saveLoc }
 
 function Apply-LockPaper {
 	$RegKeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP'
 	New-Item -Path $RegKeyPath -Force
-	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $BingPaper_saveLoc -PropertyType STRING -Force
+	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $lockedSaveLoc -PropertyType STRING -Force
 }
 function Apply-Wallpaper {
 	Push-Location "$PSScriptRoot/.."
-	./stable/Set-Wallpaper.ps1 -Path $BingPaper_saveLoc -Style Span
+	./stable/Set-Wallpaper.ps1 -Path $lockedSaveLoc -Style Span
 	Pop-Location 
 }
 function Get-BingPaper {
@@ -53,9 +55,9 @@ function Get-BingPaper {
 	
 	$skips = [array]::CreateInstance([string], $SkipMemory)
 	# Extract skip list
-	$text = Get-Content -Path $BingPaper_saveLoc -Tail 1
+	$text = Get-Content -Path $lockedSaveLoc -Tail 1
 	# Check if there is any memory
-	if ($text.Length -eq 0 -or
+	if ($text.Length -eq 0 -or # handles file not found exception
 		$text.Length % $bingDateFormat.Length -ne 0 -or
 		$text -match '\D+' -or
 		{
@@ -66,7 +68,7 @@ function Get-BingPaper {
 			$i *= $bingDateFormat.Length
 			[datetime]::ParseExact($text.Substring($i, $bingDateFormat.Length), $bingDateFormat, $null)
 			return $?
-		}.Invoke($text)
+		}.Invoke("$text")
 	) {
 		# No memory found
 		# Seed new memory
@@ -144,11 +146,10 @@ function Get-BingPaper {
 	}while (!$? -and !(Start-Sleep -Seconds $retryDelay))
 	$url = $o.images[0].url
 	do {
-		Invoke-WebRequest "http://www.bing.com/$url" -OutFile $BingPaper_saveLoc
+		Invoke-WebRequest "http://www.bing.com/$url" -OutFile $lockedSaveLoc
 	}while (!$? -and !(Start-Sleep -Seconds $retryDelay))
 	# Save Memory at end of image file
-	"`n" + ($skips -join '') | Add-Content $BingPaper_saveLoc
-	Remove-Item $oldSaveLocation
+	"`n" + ($skips -join '') | Add-Content $lockedSaveLoc
 }
 
 BingPaper
