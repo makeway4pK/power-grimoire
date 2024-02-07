@@ -12,7 +12,7 @@ $bingDateFormat = 'yyyyMMdd'
 
 function BingPaper {
 	if (!(Test-Path -Path $BingPaper_saveLoc)) {
-		if (!(Test-Path -Path $oldSaveLocation)) {
+		if (Test-Path -Path $oldSaveLocation) {
 			Get-BingPaper
 		}
 		else {
