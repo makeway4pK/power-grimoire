@@ -63,12 +63,12 @@ function Get-BingPaper {
 		{
 			param($text)
 			# Check a random date in the text
-			[uint]$i = $text.Length / $bingDateFormat.Length
+			$i = $text.Length / $bingDateFormat.Length
 			$i = Get-Random -Maximum $i
 			$i *= $bingDateFormat.Length
-			[datetime]::ParseExact($text.Substring($i, $bingDateFormat.Length), $bingDateFormat, $null)
-			return $?
-		}.Invoke("$text")
+			[datetime]::ParseExact($text.Substring($i, $bingDateFormat.Length), $bingDateFormat, $null) | Out-Null
+			return -not $?
+		}.Invoke($text)
 	) {
 		# No memory found
 		# Seed new memory
