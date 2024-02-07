@@ -34,8 +34,8 @@ function Apply-LockPaper {
 	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $BingPaper_saveLoc -PropertyType STRING -Force
 }
 function Apply-Wallpaper {
-	Push-Location $PSScriptRoot
-	./Set-Wallpaper.ps1 -Path $picsumpaper_saveLoc -Style Span
+	Push-Location "$PSScriptRoot/.."
+	./stable/Set-Wallpaper.ps1 -Path $BingPaper_saveLoc -Style Span
 	Pop-Location 
 }
 function Get-BingPaper {
