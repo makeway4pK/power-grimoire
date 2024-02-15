@@ -87,11 +87,72 @@ function Get-BingPaper {
 
 		$TodayStamp = [datetime]::Today.ToString($bingDateFormat)
 		$InUseStamp = $skips[0]
+		$Skip0Stamp = ''
+		$Next0Stamp = ''
 		$Skip1Stamp = $skips[1]
 		$Next1Stamp = $skips[2]
 		$Skip2Stamp = $skips[3]
 		$Next2Stamp = $skips[4]
 		$Skip3Stamp = $skips[5]
+
+		if ($TodayStamp -ne $Skip1Stamp) {
+			if ($InUseStamp -ne $TodayStamp) {
+				$ChosenDate = [datetime]::Today
+				$InUseStamp = $TodayStamp
+			}
+			else {
+				$Skip0Stamp = $TodayStamp
+				$Next0Stamp = [datetime]::Today.AddDays(-1).ToString($bingDateFormat)
+				if ($Next0Stamp -ne $Skip1Stamp ) {
+					$ChosenDate = [datetime]::Today.AddDays(-1)
+					$InUseStamp = $Next0Stamp
+				}
+				else {
+					$Next0Stamp = ''
+					$Skip1Stamp = ''
+
+					$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
+					$InUseStamp = $Next1Stamp
+				}
+			}
+		}
+		else {
+			if ($Next1Stamp -ne $InUseStamp) {
+				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
+				$InUseStamp = $Next1Stamp
+			}
+			else {
+				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null).AddDays(-1)
+				$ChosenStamp = $ChosenDate.ToString($bingDateFormat)
+				if ($ChosenStamp -ne $Skip2Stamp) {
+					$Next1Stamp = $ChosenStamp
+					$InUseStamp = $ChosenStamp
+				}
+				else {
+					$Next1Stamp = ''
+					$Skip2Stamp = ''
+					
+					if ($Next2Stamp -ne $InUseStamp) {
+						$ChosenDate = [datetime]::ParseExact($Next2Stamp, $bingDateFormat, $null)
+						$InUseStamp = $Next2Stamp
+					}
+					else {
+						$ChosenDate = [datetime]::ParseExact($Next2Stamp, $bingDateFormat, $null).AddDays(-1)
+						$ChosenStamp = $ChosenDate.ToString($bingDateFormat)
+						if ($ChosenStamp -ne $Skip3Stamp) {
+							$Next2Stamp = $ChosenStamp
+							$InUseStamp = $ChosenStamp
+						}
+						else {
+							$Next2Stamp = ''
+							$Skip3Stamp = ''
+
+							if (Next3Stamp-ne$InUseStamp)
+						}
+					}
+				}
+			}
+		}
 
 		if ($InUseStamp -ne $TodayStamp) {
 			# Either today's image was never applied (new day) or skipped already.
