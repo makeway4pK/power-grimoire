@@ -84,8 +84,18 @@ function Get-BingPaper {
 		for ($i = 0; $i -lt $nDates -and $i -lt $SkipMemory; $i++) {
 			$skips.Insert(0, ( $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length)))
 		}
+
+		$TodayStamp = [datetime]::Today.ToString($bingDateFormat)
+		$InUseStamp = $skips[0]
+		$Skip1Stamp = $skips[1]
+		$Next1Stamp = $skips[2]
+		$Skip2Stamp = $skips[3]
+		$Next2Stamp = $skips[4]
+		$Skip3Stamp = $skips[5]
+
+		if ($InUseStamp -ne $TodayStamp) {
 			# Either today's image was never applied (new day) or skipped already.
-			if ($skips[1] -ne [datetime]::Today.ToString($bingDateFormat)) {
+			if ($Skip1Stamp -ne $TodayStamp) {
 				# No skip range was found that starts from today so, Today's image was never  applied
 
 				#Choose today's date
@@ -96,9 +106,9 @@ function Get-BingPaper {
 
 				# Next non-skipped(and currently applied) date is at skips[2]
 				# Skip it and choose the date before it
-				$ChosenDate = [datetime]::ParseExact($skips[2], $bingDateFormat, $null).AddDays(-1)
+				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null).AddDays(-1)
 				# Check if next range starts there
-				if ($skips[3] -eq $ChosenDate.ToString($bingDateFormat)) {
+				if ($Skip2Stamp -eq $ChosenDate.ToString($bingDateFormat)) {
 					# Merge into the next range if ChosenDate is at its start
 
 					# Remove start of 2nd range...
@@ -106,11 +116,11 @@ function Get-BingPaper {
 					# ...and end of 1st range
 					$skips.RemoveAt(2)
 					# Don't skip the end of 2nd range, choose it
-					$ChosenDate = [datetime]::ParseExact($skips[2], $bingDateFormat, $null)
+					$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
 				}
 				else {
 					# Write new date if not in skip ranges
-					$skips[2] = $ChosenDate.ToString($bingDateFormat)
+					$Next1Stamp = $ChosenDate.ToString($bingDateFormat)
 				}
 			}
 		}
@@ -126,7 +136,7 @@ function Get-BingPaper {
 				# Add Today to start of 1st range
 				$skips[1] = [datetime]::Today
 				# And choose the end of 1st range
-				$ChosenDate = [datetime]::ParseExact($skips[2], $bingDateFormat, $null)
+				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
 			}
 			else {
 				# Add new range starting from today...
@@ -148,7 +158,14 @@ function Get-BingPaper {
 		Invoke-WebRequest "http://www.bing.com/$url" -OutFile $lockedSaveLoc
 	}while (!$? -and !(Start-Sleep -Seconds $retryDelay))
 	# Save Memory at end of image file
-	"`n" + ($skips -join '') | Add-Content $lockedSaveLoc
+	"`n" +
+	$InUseStamp +
+	$Skip1Stamp +
+	$Next1Stamp +
+	$Skip2Stamp +
+	$Next2Stamp +
+	$Skip3Stamp +
+	$skips[6..$skips.Count] -join '' | Add-Content $lockedSaveLoc
 }
 
 BingPaper
