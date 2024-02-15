@@ -52,8 +52,7 @@ function Get-BingPaper {
 	# but the end date is not included in the range.
 	# i.e. it marks a non-skipped date
 	
-	
-	$skips = [array]::CreateInstance([string], $SkipMemory)
+	$skips = [Collections.Arraylist]::new($SkipMemory)
 	# Extract skip list
 	$text = Get-Content -Path $lockedSaveLoc -Tail 1
 	# Check if there is any memory
