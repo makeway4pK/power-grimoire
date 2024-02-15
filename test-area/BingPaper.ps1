@@ -45,9 +45,9 @@ function Get-BingPaper {
 	$SkipMemory *= 2
 	# ...except the first one which marks the current wallpaper's date...
 	$SkipMemory += 1
-	# ...which are 8 characters long...
-	$SkipMemory *= $bingDateFormat.Length
-	# ...marking ranges of skipped dates, the start date is included,
+	
+	# ...where pairs mark ranges of skipped dates,
+	# the start date is included,
 	# i.e. it marks a skipped date
 	# but the end date is not included in the range.
 	# i.e. it marks a non-skipped date
@@ -79,9 +79,8 @@ function Get-BingPaper {
 	else {
 		# Memory found
 	
-		$text = $text.Substring(0, $SkipMemory)
-		for ($i = 0; $i -lt $SkipMemory -and $i -lt $skips.Length; $i++) {
-			$skips[$i] = $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length)	
+		# Dates are 8 characters long, trucate text if too many ranges were found
+		$text = $text.Substring(0, [Math]::Min($text.Length, $SkipMemory * $bingDateFormat.Length))
 		}
 
 		if ($skips[0] -ne [datetime]::Today) {
