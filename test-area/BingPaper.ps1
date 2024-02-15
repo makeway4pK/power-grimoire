@@ -81,9 +81,10 @@ function Get-BingPaper {
 	
 		# Dates are 8 characters long, trucate text if too many ranges were found
 		$text = $text.Substring(0, [Math]::Min($text.Length, $SkipMemory * $bingDateFormat.Length))
+		$nDates = $text.Length / $bingDateFormat.Length
+		for ($i = 0; $i -lt $nDates -and $i -lt $SkipMemory; $i++) {
+			$skips.Insert(0, ( $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length)))
 		}
-
-		if ($skips[0] -ne [datetime]::Today) {
 			# Either today's image was never applied (new day) or skipped already.
 			if ($skips[1] -ne [datetime]::Today.ToString($bingDateFormat)) {
 				# No skip range was found that starts from today so, Today's image was never  applied
