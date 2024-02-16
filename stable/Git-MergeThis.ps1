@@ -17,7 +17,14 @@ if ((git branch --merged $mergeTo_branch) -match '\*') {
 }
 $thisBranch = (git branch) -match '\*' -replace '^\*\s'
 
-# Prepare commit
+# Push thisBranch
+git push
+if (-not $?) {
+	$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
+	"Git-MergeThis.ps1: Exceptions reported by '$lastCommand', aborting..."
+	exit
+}
+
 git checkout $mergeTo_branch
 if (-not $?) {
 	$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
