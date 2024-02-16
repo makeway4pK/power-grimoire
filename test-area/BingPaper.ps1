@@ -153,60 +153,6 @@ function Get-BingPaper {
 				}
 			}
 		}
-
-		if ($InUseStamp -ne $TodayStamp) {
-			# Either today's image was never applied (new day) or skipped already.
-			if ($Skip1Stamp -ne $TodayStamp) {
-				# No skip range was found that starts from today so, Today's image was never  applied
-
-				#Choose today's date
-				$ChosenDate = [datetime]::Today
-			}
-			else {
-				# Today was skipped
-
-				# Next non-skipped(and currently applied) date is at skips[2]
-				# Skip it and choose the date before it
-				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null).AddDays(-1)
-				# Check if next range starts there
-				if ($Skip2Stamp -eq $ChosenDate.ToString($bingDateFormat)) {
-					# Merge into the next range if ChosenDate is at its start
-
-					# Remove start of 2nd range...
-					$skips.RemoveAt(3)
-					# ...and end of 1st range
-					$skips.RemoveAt(2)
-					# Don't skip the end of 2nd range, choose it
-					$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
-				}
-				else {
-					# Write new date if not in skip ranges
-					$Next1Stamp = $ChosenDate.ToString($bingDateFormat)
-				}
-			}
-		}
-		else {
-			#Today's image is applied currently and now we have to skip it
-
-			# Choose yesterday's date
-			$ChosenDate = [datetime]::Today.AddDays(-1)
-			# Check if next range starts there
-			if ($skips[1] -eq $ChosenDate.ToString($bingDateFormat)) {
-				# Merge into the next range if ChosenDate is at its start
-
-				# Add Today to start of 1st range
-				$skips[1] = [datetime]::Today
-				# And choose the end of 1st range
-				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
-			}
-			else {
-				# Add new range starting from today...
-				$skips.Insert(1, [datetime]::Today.ToString($bingDateFormat))
-				# ...and ending at yesterday
-				$skips.Insert(2, $ChosenDate.ToString($bingDateFormat))
-			}
-		}
-
 		$index = [datetime]::Today.Subtract($ChosenDate).Days
 	}
 	$mkt_str = '' # one of 'en-US', 'en-UK', '', etc.
