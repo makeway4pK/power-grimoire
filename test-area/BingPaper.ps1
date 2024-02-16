@@ -167,6 +167,8 @@ function Get-BingPaper {
 	# Save Memory at end of image file
 	"`n" +
 	$InUseStamp +
+	$Skip0Stamp +
+	$Next0Stamp +
 	$Skip1Stamp +
 	$Next1Stamp +
 	$Skip2Stamp +
