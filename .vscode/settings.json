@@ -1,3 +1,10 @@
 {
-  "todo-tree.tree.showBadges": true
+  "todo-tree.tree.showBadges": true,
+  "powershell.scriptAnalysis.settingsPath": ".vscode/PSScriptAnalyzerSettings.psd1",
+  "powershell.codeFormatting.whitespaceBetweenParameters": true,
+  "powershell.codeFormatting.useCorrectCasing": true,
+  "powershell.codeFormatting.useConstantStrings": true,
+  "powershell.codeFormatting.trimWhitespaceAroundPipe": true,
+  "powershell.codeFormatting.avoidSemicolonsAsLineTerminators": true,
+  "powershell.codeFormatting.autoCorrectAliases": true
 }

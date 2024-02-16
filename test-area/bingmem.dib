@@ -1,0 +1,47 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+```mermaid
+graph TD
+
+cts([Check if Today is skipped])
+ctu([Check if Today is InUse])
+
+cys([Check if Yesterday is skipped])
+
+cnu([Check if Next is InUse])
+
+cnns([Check if NextNext is skipped])
+
+
+at([Apply Today])
+ay([Apply Yesterday])
+
+
+an([Apply Next])
+ann([Apply NextNext and Add to previous range])
+
+jn([Merge/Append and Jump to next])
+add([Create new singleton\nrange containing Today])
+
+
+cts --"☺"--> ctu
+cts --"☻"--> jn
+
+ctu --"☺"--> at
+ctu --"☻"--> add --> cys
+
+cys --"☺"--> ay
+cys --"☻"--> jn
+
+cnu --"☺"--> an
+cnu --"☻"--> cnns
+
+cnns --"☻"--> jn
+cnns --"☺"--> ann
+
+jn --> cnu
+```
