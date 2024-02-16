@@ -6,6 +6,9 @@ Created 23:51 18Aug23
 	Ends up on the main branch
 	Avoid using rollback if conflicts occur (behavior not tested)
 #>
+param(
+	[switch] $Return = $false
+)
 $mergeTo_branch = 'dev'
 
 if ((git branch --merged $mergeTo_branch) -match '\*') {
@@ -16,7 +19,32 @@ $thisBranch = (git branch) -match '\*' -replace '^\*\s'
 
 # Prepare commit
 git checkout $mergeTo_branch
-if (!$?) { exit }
+if (-not $?) {
+	$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
+	"Git-MergeThis.ps1: Exceptions reported by '$lastCommand', aborting..."
+	exit
+}
+if ($Return) {
+	git merge --no-ff $thisBranch
+	if (-not $?) {
+		$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
+		"Git-MergeThis.ps1: Exceptions reported by '$lastCommand', aborting..."
+		exit
+	}
+	git push
+	if (-not $?) {
+		$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
+		"Git-MergeThis.ps1: Exceptions reported by '$lastCommand', aborting..."
+		exit
+	}
+	git checkout $thisBranch
+	if (-not $?) {
+		$lastCommand = Get-History | Select-Object -Last 1 | Select-Object -Expand CommandLine
+		"Git-MergeThis.ps1: Exceptions reported by '$lastCommand', aborting..."
+		exit
+	}
+	exit
+}
 git merge --no-ff --no-commit $thisBranch
 
 # simple rollback (not tested for merges with conflicts)
