@@ -82,7 +82,7 @@ function Get-BingPaper {
 		$text = $text.Substring(0, [Math]::Min($text.Length, $SkipMemory * $bingDateFormat.Length))
 		$nDates = $text.Length / $bingDateFormat.Length
 		for ($i = 0; $i -lt $nDates -and $i -lt $SkipMemory; $i++) {
-			$skips.Insert(0, ( $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length)))
+			$skips += ( $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length))
 		}
 
 		$TodayStamp = [datetime]::Today.ToString($bingDateFormat)
