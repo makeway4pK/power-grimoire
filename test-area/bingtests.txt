@@ -1,0 +1,7 @@
+31256 01256   checked
+40379 30379   checked
+30379 40479   checked
+30348 80--8   checked
+02348 1012348 checked
+01379 30379   checked
+6 cases
