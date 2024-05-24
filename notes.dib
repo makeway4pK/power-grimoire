@@ -14,6 +14,11 @@
 
 - [ ] fix: wadb is slow is it? takes 8s and 5s on 1st n 2nd run  
   3s for adb start-server is expected but maybe the 5s can be improved
+- [ ] no-skip option for bingpaper
+
+#!markdown
+
+- [ ] what to do about 15 paper limit -bingpaper
 
 #!markdown
 
