@@ -17,34 +17,41 @@ function BingPaper {
 		}
 	}
 	# Signal pending operation to other instances
-	Mark-AsLocked
-	
-	Get-BingPaper
-	Apply-Wallpaper
-	Apply-LockPaper
+	Make-working-copy
+
+	# Get next wallpaper if connected to internet
+	ping bing.com -n 1 | Out-Null
+	if ($?) { Get-BingPaper	}
 
 	# Signal completion to other instances
-	Mark-AsUnlocked
+	Commit-working-copy
+	
+	#Apply BingPaper to Desktop
+	Apply-Wallpaper
+
+	#Apply to Lockscreen
+	net session | Out-Null
+	if ($?) { Apply-LockPaper }
+
 }
 
-function Mark-AsLocked { Rename-Item $BingPaper_saveLoc $lockedSaveLoc }
-function Mark-AsUnlocked { Rename-Item $lockedSaveLoc $BingPaper_saveLoc }
+function Make-working-copy { Copy-Item $BingPaper_saveLoc $lockedSaveLoc }
+function Commit-working-copy {
+	Remove-Item $BingPaper_saveLoc
+	Rename-Item $lockedSaveLoc $BingPaper_saveLoc 
+}
 
 function Apply-LockPaper {
 	$RegKeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP'
 	New-Item -Path $RegKeyPath -Force
-	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $lockedSaveLoc -PropertyType STRING -Force
+	New-ItemProperty -Path $RegKeyPath -Name 'LockScreenImagePath' -Value $BingPaper_saveLoc -PropertyType STRING -Force
 }
 function Apply-Wallpaper {
 	Push-Location "$PSScriptRoot/.."
-	./stable/Set-Wallpaper.ps1 -Path $lockedSaveLoc -Style Span
+	./stable/Set-Wallpaper.ps1 -Path $BingPaper_saveLoc -Style Span
 	Pop-Location 
 }
 function Get-BingPaper {
-	# Dates in memory are in pairs...
-	$SkipMemory *= 2
-	# ...except the first one which marks the current wallpaper's date...
-	$SkipMemory += 1
 	
 	# ...where pairs mark ranges of skipped dates,
 	# the start date is included,
@@ -81,100 +88,69 @@ function Get-BingPaper {
 		# Dates are 8 characters long, trucate text if too many ranges were found
 		$text = $text.Substring(0, [Math]::Min($text.Length, $SkipMemory * $bingDateFormat.Length))
 		$nDates = $text.Length / $bingDateFormat.Length
-		for ($i = 0; $i -lt $nDates -and $i -lt $SkipMemory; $i++) {
-			$skips += ( $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length))
+		$skips += $text.Substring(0 * $bingDateFormat.Length, $bingDateFormat.Length)
+		$skips += ''
+		$skips += ''
+
+		if ($nDates -gt 1) {
+			for ($i = 1; $i -lt $nDates -and $i -lt $SkipMemory; $i++) {
+				$skips += $text.Substring($i * $bingDateFormat.Length, $bingDateFormat.Length)
+			}
 		}
 
+		# Skiplist Algorithm
 		$TodayStamp = [datetime]::Today.ToString($bingDateFormat)
-		$InUseStamp = $skips[0]
-		$Skip0Stamp = ''
-		$Next0Stamp = ''
-		$Skip1Stamp = $skips[1]
-		$Next1Stamp = $skips[2]
-		$Skip2Stamp = $skips[3]
-		$Next2Stamp = $skips[4]
-		$Skip3Stamp = $skips[5]
-
-		if ($TodayStamp -ne $Skip1Stamp) {
-			if ($InUseStamp -ne $TodayStamp) {
-				$ChosenDate = [datetime]::Today
-				$InUseStamp = $TodayStamp
-			}
-			else {
-				$Skip0Stamp = $TodayStamp
-				$Next0Stamp = [datetime]::Today.AddDays(-1).ToString($bingDateFormat)
-				if ($Next0Stamp -ne $Skip1Stamp ) {
-					$ChosenDate = [datetime]::Today.AddDays(-1)
-					$InUseStamp = $Next0Stamp
+		if ($TodayStamp -eq $skips[3]) {
+			if ($skips[4] -eq $skips[0]) {
+				$ChosenDate = [datetime]::ParseExact($skips[4], $bingDateFormat, $null).AddDays(-1)
+				$ChosenStamp = $ChosenDate.ToString($bingDateFormat)
+				if ($ChosenStamp -eq $skips[5]) {
+					$skips[4] = $skips[5] = ''
+					$skips[0] = $skips[6]
+					$ChosenDate = [datetime]::ParseExact($skips[6], $bingDateFormat, $null)
 				}
 				else {
-					$Next0Stamp = ''
-					$Skip1Stamp = ''
-
-					$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
-					$InUseStamp = $Next1Stamp
+					$skips[0] = $skips[4] = $ChosenStamp
 				}
+			}
+			else {
+				$ChosenDate = [datetime]::ParseExact($skips[4], $bingDateFormat, $null)
+				$skips[0] = $skips[4]
 			}
 		}
 		else {
-			if ($Next1Stamp -ne $InUseStamp) {
-				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null)
-				$InUseStamp = $Next1Stamp
-			}
-			else {
-				$ChosenDate = [datetime]::ParseExact($Next1Stamp, $bingDateFormat, $null).AddDays(-1)
-				$ChosenStamp = $ChosenDate.ToString($bingDateFormat)
-				if ($ChosenStamp -ne $Skip2Stamp) {
-					$Next1Stamp = $ChosenStamp
-					$InUseStamp = $ChosenStamp
+			if ($TodayStamp -eq $skips[0]) {
+				$skips[1] = $TodayStamp
+				$skips[2] = [datetime]::Today.AddDays(-1).ToString($bingDateFormat)
+				if ($skips[2] -eq $skips[3] ) {
+					$skips[2] = $skips[3] = ''
+					$skips[0] = $skips[4]
+					$ChosenDate = [datetime]::ParseExact($skips[4], $bingDateFormat, $null)
 				}
 				else {
-					$Next1Stamp = ''
-					$Skip2Stamp = ''
-					
-					if ($Next2Stamp -ne $InUseStamp) {
-						$ChosenDate = [datetime]::ParseExact($Next2Stamp, $bingDateFormat, $null)
-						$InUseStamp = $Next2Stamp
-					}
-					else {
-						$ChosenDate = [datetime]::ParseExact($Next2Stamp, $bingDateFormat, $null).AddDays(-1)
-						$ChosenStamp = $ChosenDate.ToString($bingDateFormat)
-						if ($ChosenStamp -ne $Skip3Stamp) {
-							$Next2Stamp = $ChosenStamp
-							$InUseStamp = $ChosenStamp
-						}
-						else {
-							$Next2Stamp = ''
-							$Skip3Stamp = ''
-
-							if (Next3Stamp-ne$InUseStamp)
-						}
-					}
+					$ChosenDate = [datetime]::Today.AddDays(-1)
+					$skips[0] = $skips[2]
 				}
+			}
+			else {
+				$ChosenDate = [datetime]::Today
+				$skips[0] = $TodayStamp
 			}
 		}
 		$index = [datetime]::Today.Subtract($ChosenDate).Days
 	}
+	$num = [Math]::Max(0, $index - 7)
 	$mkt_str = '' # one of 'en-US', 'en-UK', '', etc.
 	$o = $null
 	do {
-		$o = Invoke-WebRequest "http://www.bing.com/HPImageArchive.aspx?format=js&idx=$index&n=8&mkt=$mkt_str" | ConvertFrom-Json
+		$o = Invoke-WebRequest "http://www.bing.com/HPImageArchive.aspx?format=js&idx=$index&n=$($num+1)&mkt=$mkt_str" | ConvertFrom-Json
 	}while (!$? -and !(Start-Sleep -Seconds $retryDelay))
-	$url = $o.images[0].url
+	$url = $o.images[$num].url
 	do {
 		Invoke-WebRequest "http://www.bing.com/$url" -OutFile $lockedSaveLoc
 	}while (!$? -and !(Start-Sleep -Seconds $retryDelay))
 	# Save Memory at end of image file
-	"`n" +
-	$InUseStamp +
-	$Skip0Stamp +
-	$Next0Stamp +
-	$Skip1Stamp +
-	$Next1Stamp +
-	$Skip2Stamp +
-	$Next2Stamp +
-	$Skip3Stamp +
-	$skips[6..$skips.Count] -join '' | Add-Content $lockedSaveLoc
+	"`n" + ($skips -join '') | Add-Content $lockedSaveLoc
 }
 
 BingPaper
