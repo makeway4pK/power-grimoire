@@ -45,3 +45,49 @@ cnns --"☺"--> ann
 
 jn --> cnu
 ```
+
+#!markdown
+
+```mermaid
+graph TD
+
+cts{{"if Today is date[3]"}}
+ctu{{"if Today is date[0]"}}
+
+cys{{"if Yesterday is date[3]"}}
+
+cnu{{"if date[4] is date[0]"}}
+
+cnns{{"if date[4]-1 is date[5]"}}
+
+
+at[["date[0] = Today"]]
+ay[["date[0] = Yesterday"]]
+
+
+an[["date[0] = date[4]"]]
+ann[["date[4]--            \ndate[0] = date[4]"]]
+annn[["date[4] = date[5] = ''\ndate[0] = date[6]    ."]]
+
+add[["date[1] = Today\n      date[2] = Yesterday"]]
+merge[["date[2] = date[3] = ''\ndate[0] = date[4]    ."]]
+
+cts --"else"--> ctu
+cts --> cnu
+
+ctu --"else"--> at
+ctu --> add --> cys
+
+cys --"else"--> ay
+cys --> merge
+
+cnu --"else"--> an
+cnu --> cnns
+
+cnns --"else"--> ann
+cnns --> annn
+
+
+
+
+```
