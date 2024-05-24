@@ -8,9 +8,10 @@
 
 . ./cfgMan.ps1 -get 'asusSG_path'
 
-Start-Process ($asusSG_path + "\AsTPCenter\x64\AsusTPLoader.exe")
-While ((Get-Process AsusTPCenter*).length -eq 0) {
+Get-Process AsusTP* -ErrorAction Ignore | Stop-Process
+Start-Process ($asusSG_path + '\AsTPCenter\x64\AsusTPLoader.exe') -ErrorAction Stop
+While ((Get-Process AsusTPCenter* -ErrorAction Ignore).length -eq 0) {
     # Increase wait time to accomodate for initialization (trial-error)
     Start-Sleep -Milliseconds 200
 }
-Stop-Process -Name "AsusTPLoader"
+Stop-Process -Name 'AsusTPLoader'
